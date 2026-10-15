@@ -61,6 +61,10 @@ ECL_EXPORT const char *GetLoadError(void) { return g_load_error; }
  *                   Recommended 90 for normal levels, 120 for NiGHTS
  *                   levels. The picture's alone
  *   scoreTimeRings  timerres: Normal, Centiseconds, Mania, Tics; default Mania
+ *   scorePos        scorepos, SRB2 Legacy's Score Display: where the HUD
+ *                   and the intermission draw the score's number, Normal
+ *                   (2.1's place) or Modern (8 pixels right, lined up with
+ *                   the time); default Modern. The picture's alone
  *   flipCamera      flipcam: the camera flips with gravity; default Yes
  *   musicPref       musicpref: which of a song's two versions plays, Digital
  *                   (O_, Ogg Vorbis) or MIDI (D_, on emulated YM2612s,
@@ -94,6 +98,7 @@ ECL_EXPORT const char *GetLoadError(void) { return g_load_error; }
  *                   default software
  */
 static const char *const g_timerres[] = { "Normal", "Centiseconds", "Mania", "Tics" };
+static const char *const g_scorepos[] = { "Normal", "Modern" };
 static const char *const g_musicpref[] = { "Digital", "MIDI" };
 
 /* the argument list: the engine keeps pointers into it for the run */
@@ -170,6 +175,15 @@ static void settings_args(void)
 				tr = i;
 	arg("+timerres");
 	arg(g_timerres[tr]);
+
+	char pos[16];
+	int sp = 1; /* Modern */
+	if (wbx_setting_str("scorePos", pos, (int)sizeof pos) > 0)
+		for (int i = 0; i < 2; i++)
+			if (!strcmp(pos, g_scorepos[i]))
+				sp = i;
+	arg("+scorepos");
+	arg(g_scorepos[sp]);
 
 	arg("+flipcam");
 	arg(wbx_setting_bool("flipCamera", 1) ? "Yes" : "No");

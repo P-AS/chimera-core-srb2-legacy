@@ -103,7 +103,8 @@ The harnesses' `--wav FILE` writes a run's sound.
 Declared in `waterbox/waterbox.config`, so Chimera shows them as the core's options; each is SRB2 Legacy's own option,
 given to the engine at start: Analog Control (Off: 2.1's useranalog), Camera Speed (1.0), Camera Distance (192, as in
 SRB2 2.2; Legacy's own is 160), Camera Height (40, as in 2.2; Legacy's own is 25), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is
-recommended for NiGHTS levels), Score/Time/Rings (Mania), Flip Camera with Gravity (Yes), Unlock Record Attack and
+recommended for NiGHTS levels), Score/Time/Rings (Mania), Score Display (Modern: the score's number lined up with the time; Normal is 2.1's
+place and Legacy's default), Flip Camera with Gravity (Yes), Unlock Record Attack and
 NiGHTS Mode, Unlock All Maps in Record Attack and NiGHTS Mode, Unlock All Secrets (each Off), Music Preference
 (Digital: the recorded songs; MIDI: the game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips,
 MAME's - the sound's alone), Renderer (software; opengl-hw: SRB2's OpenGL renderer on this machine's GPU through
@@ -139,7 +140,7 @@ conveyor or a moving platform adds), `Player.Platform Momentum Z` (`mo->pmomz`: 
 `MF_BOSS` object, as the SRB2 TAS build finds the boss: its health, its type's starting health, and `MF2_FRET`); `Player.Angle` (2^32 a turn); `Timers.Speed Shoes`, `Timers.Invincibility`,
 `Timers.Space`, `Timers.Air` (tics left). Out of a level the player's fields are 0.
 
-`lua/tasinfo.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
+`lua/tasinfo-srb2-legacy.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
 speed, the angle in hex and in degrees (each to 4 decimal places, on lines of their own), the position and the
 momentum, the conveyor and platform momentum, the spindash's revs, the four timers in tics and seconds, and while a boss is in the level its health (left /
 at the start) and whether it is flashing. SRB2

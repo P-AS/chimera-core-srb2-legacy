@@ -19,7 +19,7 @@ name: chimera waterbox core
 # runs opengl-hw through Chimera's GPU bridge when the runner's EGL gives a
 # context (a runner has no GPU: llvmpipe, or a SKIP); the package through
 # Chimera's own engine (the gate's engine leg) and Chimera's contract tests.
-# Every release also carries lua/tasinfo.lua, the TAS info overlay for
+# Every release also carries lua/tasinfo-srb2-legacy.lua, the TAS info overlay for
 # Chimera's Lua Console (the publish-lua job), checked to parse by the gate
 # job.
 #
@@ -228,7 +228,7 @@ jobs:
       chimera-ref: aarch64
 
   publish-lua:
-    # lua/tasinfo.lua as an asset of the release publish just made, dev or
+    # lua/tasinfo-srb2-legacy.lua as an asset of the release publish just made, dev or
     # nightly. Chimera's publish-core.sh uploads only the package, and deletes
     # and recreates `dev` every time, so the script goes up after it, from this
     # same commit. The release is the one publish-core.yml picks: a nightly for
@@ -238,8 +238,8 @@ jobs:
     # name is the only order); an unmoved main publishes none, and that
     # nightly, from an earlier run, gets the script if it lacks it. The notes
     # get two paragraphs: which package most users want (x64), above the table
-    # that names both, and what tasinfo.lua is, at the end.
-    name: publish tasinfo.lua
+    # that names both, and what tasinfo-srb2-legacy.lua is, at the end.
+    name: publish tasinfo-srb2-legacy.lua
     needs: [ publish ]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -270,7 +270,7 @@ jobs:
           [ -n "$tag" ] || { echo "no $KIND release at ${GITHUB_SHA}" >&2; exit 1; }
           # the API answers 5xx now and then (as publish-core.sh retries for)
           for n in 1 2 3 4; do
-            gh release upload "$tag" lua/tasinfo.lua --clobber && break
+            gh release upload "$tag" lua/tasinfo-srb2-legacy.lua --clobber && break
             [ "$n" -lt 4 ] || exit 1
             sleep $((n * 15))
           done
@@ -284,12 +284,12 @@ jobs:
                changed=1 ;;
           esac
           case "$notes" in
-            *tasinfo.lua*) ;;
-            *) notes=$(printf '%s\n\n%s' "$notes" "\`tasinfo.lua\` is the TAS info overlay (speed, angle, position, momentum, spindash revs, timers, boss): open it in Chimera's **Tools > Lua Console** with an SRB2 Legacy project loaded (the README's \"Game State and the TAS info script\").")
+            *tasinfo-srb2-legacy.lua*) ;;
+            *) notes=$(printf '%s\n\n%s' "$notes" "\`tasinfo-srb2-legacy.lua\` is the TAS info overlay (speed, angle, position, momentum, spindash revs, timers, boss): open it in Chimera's **Tools > Lua Console** with an SRB2 Legacy project loaded (the README's \"Game State and the TAS info script\").")
                changed=1 ;;
           esac
           if [ "$changed" = 1 ]; then
             printf '%s\n' "$notes" > notes.md
             gh release edit "$tag" --notes-file notes.md
           fi
-          echo "tasinfo.lua -> $tag"
+          echo "tasinfo-srb2-legacy.lua -> $tag"

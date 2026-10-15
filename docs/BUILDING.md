@@ -221,7 +221,7 @@ last one; Actions > Run workflow with kind `nightly` publishes one by hand).
 The gate job uploads the package as the artifact `srb2legacy-<commit>`
 (`actions/upload-artifact@v7`), and the publish job hands it to Chimera's
 public reusable workflow `publish-core.yml`. Then this repository's own
-`publish-lua` job uploads `lua/tasinfo.lua`, from the same commit, into that
+`publish-lua` job uploads `lua/tasinfo-srb2-legacy.lua`, from the same commit, into that
 release (`dev`, or the newest `nightly-*` at the commit) and adds a line about
 it to the release notes; the gate job has checked it parses (`luac5.4 -p`).
 There is no manual equivalent.
