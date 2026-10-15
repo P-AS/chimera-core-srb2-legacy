@@ -82,8 +82,8 @@
 #                teeth - a declaration with two buttons swapped does not pass
 #   settings     the declared settings reach the engine as its options: with no
 #                setting given, and with every declared default given, the
-#                engine plays useranalog Off, cam_speed 1.0, cam_dist 160,
-#                cam_height 25, fov 90, timerres Mania, flipcam Yes, musicpref
+#                engine plays useranalog Off, cam_speed 1.0, cam_dist 192,
+#                cam_height 40, fov 90, timerres Mania, flipcam Yes, musicpref
 #                Digital, nothing unlocked, Sonic; each other value of each
 #                setting is the engine's option (read back with run-native
 #                --print-cvar). Its teeth - another value is not the default's
@@ -416,12 +416,12 @@ cvars() {
 		--print-cvar cam_speed --print-cvar cam_dist --print-cvar cam_height --print-cvar fov --print-cvar timerres --print-cvar flipcam --print-cvar musicpref 2>/dev/null \
 		| grep '^cvar' | tr '\n' ' '
 }
-want="cvar useranalog Off cvar cam_speed 1.00000 cvar cam_dist 160.00000 cvar cam_height 25.00000 cvar fov 90.00000 cvar timerres Mania cvar flipcam Yes cvar musicpref Digital "
+want="cvar useranalog Off cvar cam_speed 1.00000 cvar cam_dist 192.00000 cvar cam_height 40.00000 cvar fov 90.00000 cvar timerres Mania cvar flipcam Yes cvar musicpref Digital "
 none="$(cvars '{"warp": "1"}')"
 defaults="$(python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); d={s["name"]:s["default"] for s in c["settings"]}; d["warp"]="1"; print(json.dumps(d))' "$decl")"
 explicit="$(cvars "$defaults")"
 if [ "$none" = "$want" ] && [ "$explicit" = "$want" ]; then
-	pass "settings: the defaults, absent or given, are useranalog Off, cam_speed 1.0, cam_dist 160, cam_height 25, fov 90, timerres Mania, flipcam Yes, musicpref Digital"
+	pass "settings: the defaults, absent or given, are useranalog Off, cam_speed 1.0, cam_dist 192, cam_height 40, fov 90, timerres Mania, flipcam Yes, musicpref Digital"
 else
 	bad "settings: the defaults are not what they should be: absent '$none', given '$explicit', want '$want'"
 fi
