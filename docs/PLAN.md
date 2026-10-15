@@ -1,12 +1,87 @@
-# chimera-core-srb2: plan and decisions
+# chimera-core-srb2-legacy: plan and decisions
 
-Started 2026-10-04, from the DSDA core's shape (`waterbox/`, the patch series, the native reference beside
-the guest build), following Chimera's `docs/porting-a-core.md` and `docs/game-cores.md`.
+## The fork (2026-10-15)
+
+This core is a fork of the SRB2 (2.2) core, `chimera-core-srb2` (github.com/P-AS/chimera-core-srb2, forked at
+a6e929b with its history), for **SRB2 Legacy** (github.com/srb2-preservation/srb2-legacy): srb2-preservation's
+updated fork of Sonic Robo Blast 2 2.1.25, which backports essential fixes and quality-of-life features from 2.2.
+It is an **unofficial third-party core** (user-decided), published from github.com/P-AS/chimera-core-srb2-legacy,
+not on Chimera's roster. Legacy has backported much of 2.2's engine shape (`D_RunFrame`, `i_time.c`, `r_fps.c`,
+the palette-rendering OpenGL renderer with its shaders and light tables, Marathon Run, the 2.2 level platter), so
+nearly everything carried over: the platform layer, the mixer (Ogg Vorbis, GME, libopenmpt, the FM MIDI player),
+the virtual clock and the wipes as steps, the machine's filesystem, savestates, the GPU bridge, the controller's
+shape, Game State, the gate and CI. What changed, and why:
+
+- **Upstream**: `extern/SRB2` is SRB2 Legacy at the `SRB2_release_2.1.30` tag (user-decided). Its tree is flat
+  (no `netcode/`; `i_tcp.c` and `d_clisrv.c` in `src/`), it has no `dummy/i_cdmus.c`, and its `libs/` carry zlib
+  1.2.6 and libpng 1.2.46 (built without assembler; zlib's gz* files too, as its `zutil.c` names `gzflags`).
+- **Patches**: six, renumbered (see "The patches"). Dropped: the `-workdir` backport (Legacy has `-workdir`,
+  f789fc43; user-noted) and no-curl (Legacy's sources have no curl code at all). The others were rewritten for 2.1's
+  code: the loop split, driver aiming (`localaiming`), MAXVID, all maps available (the same platter check), the GL
+  log file (Legacy's `r_opengl.h` logs to a file even under SDL, so `GL_NO_LOGFILE` undefines `DEBUG_TO_FILE`), and
+  the GL context rebuild (Legacy's texture cache is a list of the hardware renderer's mipmaps, forgotten in place;
+  `md2_playermodels` is `MAXSKINS` long; no `DeleteTexture` entry point).
+- **The data** (firmware): srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta (2.1.25's) and
+  legacy.pk3 (2.1.30's). The engine checks the MD5 of all but music.dta itself. **legacy.pk3 is declared always**,
+  though upstream calls it optional: Chimera has no optional firmware (its `docs/porting-a-core.md`), and the engine
+  loads it whenever it is present, so a project with and one without it would be two games under one declaration;
+  every 2.1.30 distribution (`SRB2-Legacy-v2130-Full.zip`, srb2-preservation's assets repository) has it. The
+  gate's data comes from srb2-preservation's assets repository on Codeberg (git lfs, a pinned commit; user-pointed),
+  byte for byte the release zip's.
+- **Settings**: 2.1 has no play styles (only Analog Control, `useranalog`), no `autobrake`, no tutorial (so no
+  `tutorialprompt`), and no locked characters (no `SECRET_SKIN`; Amy, Fang and Metal Sonic are 2.2's), and SRB2
+  Legacy always offers Marathon Run. So Play Style became **Analog Control** (Off, SRB2's own), and Automatic
+  Braking, Tutorial Prompt and Unlock All Characters are gone. Camera Distance and Height default to Legacy's own
+  160 and 25; Score/Time/Rings' first option is Legacy's "Normal" (2.2's "Classic"). The SRB2 core's
+  user-decided defaults that still apply are kept: Camera Speed 1.0, Mania, Flip Camera Yes.
+- **The controller**: the same 24 buttons and 4 axes, on 2.1's controls (`gc_*`; Spin is 2.1's `gc_use`), its
+  key events in `event_t.data1`; the bindings forced by clearing them all, `G_Controldefault`, then each button's
+  key its control's alone (2.1 has no control schemes). The keys are the SRB2 core's, which Legacy's defaults
+  mostly share (Legacy's own Center View is End, Fire Normal C, Weapon Next/Prev E/Q).
+- **Game State**: 2.1's thinkers are one list (`thinkercap`, filtered by `P_MobjThinker`), its unlockables carry
+  their own `unlocked`, and its player has no `dashmode`: **`Player.Dashmode` is gone** (no Metal Sonic in 2.1),
+  `Player.Normal Speed` stays. The block is 104 bytes. The state digest mixes `player->health` (2.1's rings, plus
+  one).
+- **2.1's play, as the gate found it**: a spindash's first tic charges 1.0 (P_DoSpinDash), the clamp to Min Dash
+  (Sonic: 15 to 90) coming on the next think; the launch's momentum is the charge less a tic of ground friction,
+  and `player->speed` is reckoned a tic later. A Lua-spawned Egg Mobile flashes until it is back in its spawn state
+  (leveltime 162 in the gate's boss test; 2.2 cleared it with its pain state). Entering Greenflower Zone Act 1 is
+  41 lag steps (2.2: 64). `tasinfo.lua` counts no revs below Min Dash.
+- **Small platform answers** 2.1 asks for: `I_ConfigDir`, `I_GetPlatform`, `I_OpenURL`,
+  `I_CursedWindowMovement` (Legacy shakes the window on quakes: the machine has none), `I_SetBorderlessWindow`,
+  `I_InitTcpDriver`, `highcolor`; `VID_CheckRenderer` returns nothing; the renderer is fixed at the start as
+  Legacy's `-opengl`/`-software` would fix it. `I_FinishUpdate` draws Legacy's overlays (the tic rate, the ping,
+  Marathon's, the GIF recorder's).
+- **OpenGL through the bridge** (gate leg `engine`, on an RTX 2070 SUPER): three things were Legacy's own.
+  - Legacy's start takes the configuration's `renderer` (Software by default) unless the command line says
+    `-opengl` or `-software`, and asks to switch to it; the machine refuses (`VID_CheckRenderer`), but only after
+    the start has flushed half of the OpenGL renderer's caches, and `HWR_LoadTextures` then walked a stale texture
+    list into a fault. `Init` now gives Legacy's own `-opengl` (or `-software`) with the renderer setting: no
+    switch is asked for. `-opengl` counts only if OpenGL started, so the fallback to software is unchanged.
+  - Its renderer loads `glFogf`/`glFogfv` (and only ever disables `GL_FOG`): `gl_compat.c` answers them with
+    nothing.
+  - Its picture is not the same to the bit run to run: `hw_batching.c` sorts polygons by a hash of their
+    texture's GL name, the names are the driver's (another set per session and per rebuild), and polygons meeting
+    at one depth then draw in another order - one or two seam pixels in a 640x400 frame (two straight runs in one
+    process differ so; the SRB2 core's Greenflower shows none). `tests/engine-gpu-states.py` counts a picture as
+    the straight run's within 16 differing pixels. Its teeth were watched: with the rebuild disabled, the reopen
+    differs in 252350 pixels a frame and the rewind makes no rebuild. The game is not touched (the sound and the
+    state are the software run's). Legacy's menus are shorter: the gate compares the character select at step 250
+    (2.2: 300). With these, both GPU checks pass, and the character select is the software renderer's to the
+    pixel.
+- **MIDI**: the SRB2 core's FM player is kept (Music Preference MIDI; `MU_MID` is the type Legacy's `s_sound.c`
+  knows, where 2.2 had `MU_MID_EX`). Its rationale changes: SRB2 Legacy's own builds play MIDI through plain
+  SDL_mixer (2.8.1 on Windows: the system's synthesizer or Timidity), whose sound differs by machine, so no
+  upstream build is matched; the six YM2612s are a deterministic MIDI sound, the one the SRB2 core gives 2.2.
+- **The package** is `srb2legacy.chimeraCore` (system `SRB2Legacy`, "SRB2 Legacy"; releases
+  `srb2legacy-<version>-<arch>.chimeraCore`).
+
+What follows is the SRB2 core's record, corrected where the fork changed it.
 
 ## Milestones
 
 - [x] **0. Headless native build.** SRB2's engine with the core's platform layer in place of `sdl/`: no
-  window, no SDL, no audio device, no network, no threads. `build/native/run-native` boots 2.2.15's data and
+  window, no SDL, no audio device, no network, no threads. `build/native/run-native` boots the data and
   runs the intro in the software renderer.
 - [x] **1. Virtual time.** The machine's clock instead of the host's (`platform/i_system.c`): a step is a
   tic, sleeps jump to the next tic's deadline, the libc clocks and `rand` are wrapped. Gate leg `time`: a
@@ -47,46 +122,43 @@ the guest build), following Chimera's `docs/porting-a-core.md` and `docs/game-co
     covering every use, and it weighed on the repository, the package (10.2 MB, now 4.8) and CI. See "OpenGL".
   - [x] **8b.** `renderer` `opengl-hw`: the same renderer through Chimera's GPU bridge, onto the machine's
     GPU, falling back to software, with a warning in the log, when there is no bridge: `platform/gl_compat.c` (GL 1.x on the bridge's
-    core profile), the rebuild when the context moves (`chimera_gl_step`, patch 0008). Gate: the `engine` leg's
+    core profile), the rebuild when the context moves (`chimera_gl_step`, patch 0006). Gate: the `engine` leg's
     GPU checks. Setting `glShaders` (`gr_shaders`). See "OpenGL".
 
 ## Upstream
 
-- **The submodule is SRB2 master** (`extern/SRB2`, 639b58c6d, 2.2.15-113), not the 2.2.15 tag: it is
-  net-compatible with 2.2.15 and carries the fixes that let it build with GCC 15 and later (user-decided,
-  2026-10-04). **2.2.16 is due soon**, so everything is built to be bumped:
+- **The submodule is SRB2 Legacy** (`extern/SRB2`, github.com/srb2-preservation/srb2-legacy, the
+  `SRB2_release_2.1.30` tag, aacbb5ec). Everything is built to be bumped:
   - the sources are upstream's own `Sourcefile` lists (`waterbox/sources.mk`), so new and removed files follow
     the submodule;
   - zlib and libpng are the copies in upstream's `libs/`, not submodules of the core's;
   - the patches are hooks, small and few. To bump: move the submodule, `waterbox/apply-patches.sh` (it says
     which patch no longer applies), rebuild, and update the firmware hashes when the data changes
     (`ASSET_HASH_*` in upstream's `src/config.h.in`, which the engine checks itself at start).
-- **The data is firmware, never carried**: srb2.pk3, zones.pk3, characters.pk3, music.pk3 (2.2.15's;
-  `/usr/share/games/SRB2` locally). The engine refuses srb2/zones/characters.pk3 whose MD5 is not 2.2.15's
-  (`W_VerifyFileMD5`; `DEVELOP` is not defined).
+- **The data is firmware, never carried**: srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta and
+  legacy.pk3 (`/usr/share/games/srb2-legacy` locally). The engine refuses all but music.dta whose MD5 is not
+  theirs (`W_VerifyFileMD5`; `DEVELOP` is not defined), and a music.dta with anything but music and sounds.
 
 ## The patches
 
 - `0001-loop-for-the-host.patch`: `D_SRB2Loop` in two parts, `D_SRB2LoopSetup()` and `D_RunFrame()`, for a host
   that runs the loop itself.
-- `0002-no-curl.patch`: `d_netfil.c`'s HTTP download under `HAVE_CURL`, as its include already is (upstream's
-  CMake makes curl mandatory, so nothing else guards it); without it, no download.
-- `patches/openmpt/0001-deterministic-random-device.patch` (on `extern/openmpt`): libopenmpt's random seeding
-  deterministic under `MPT_BUILD_DETERMINISTIC_RANDOM` (see "The sound").
-- `0008-gl-context-lost.patch`: `ContextLost`/`ContextRestored` in the GL driver and `HWR_ContextLost`/
+- `0002-driver-aiming.patch`: a non-zero aiming in the base tic command (`I_BaseTiccmd`, the external driver's)
+  sets the look pitch (`localaiming`); `G_BuildTiccmd` otherwise overwrites it with its own look state.
+- `0003-maxvid-overridable.patch`: `MAXVIDWIDTH`/`MAXVIDHEIGHT` overridable by a build (the core's: 3840x2160).
+- `0004-all-maps-available.patch`: `menu_allmapsavailable`, which an external driver sets to list every
+  map on the level platters as available, visited or locked or not (Unlock All Maps).
+- `0005-gl-no-logfile.patch`: `GL_NO_LOGFILE`, for a platform layer with a console and no place for
+  `ogllog.txt`: the OpenGL renderer's messages go to the console, and no log file is written into the machine's
+  files.
+- `0006-gl-context-lost.patch`: `ContextLost`/`ContextRestored` in the GL driver and `HWR_ContextLost`/
   `HWR_ContextRestored` in the hardware renderer: a platform layer whose context can be replaced under the
   renderer (the GPU bridge's) has it forget every GL name without deleting any, then make its objects again.
-- `0007-gl-no-logfile.patch`: `GL_NO_LOGFILE`, for a platform layer with a console and no place for
-  `ogllog.txt`: the OpenGL renderer's messages go to the console (as SDL's build has them), and no log file is
-  written into the machine's files.
-- `0006-all-maps-available.patch`: `menu_allmapsavailable`, which an external driver sets to list every
-  map on the level platters as available, visited or locked or not (Unlock All Maps).
-- `0005-maxvid-overridable.patch`: `MAXVIDWIDTH`/`MAXVIDHEIGHT` overridable by a build (the core's: 3840x2160).
-- `0004-driver-aiming.patch`: a non-zero aiming in the base tic command (`I_BaseTiccmd`, the external driver's)
-  sets the look pitch; `G_BuildTiccmd` otherwise overwrites it with its own look state.
-- `0003-workdir-backport.patch`: upstream's `-workdir` (da1b35820, on `next` for 2.2.16), backported: it names
-  SRB2's own folder, where `-home` names only the user's home it is otherwise derived from (`<home>/.srb2`).
-  **Drop it when the submodule reaches 2.2.16**: `apply-patches.sh` will report it no longer applies.
+- `patches/openmpt/0001-deterministic-random-device.patch` (on `extern/openmpt`): libopenmpt's random seeding
+  deterministic under `MPT_BUILD_DETERMINISTIC_RANDOM` (see "The sound").
+
+The SRB2 core's `0002-no-curl` (Legacy has no curl code) and `0003-workdir-backport` (Legacy has `-workdir`) are
+not needed.
 
 ## The platform layer (`waterbox/platform/`)
 
@@ -104,7 +176,7 @@ the guest build), following Chimera's `docs/porting-a-core.md` and `docs/game-co
 ## The guest (milestone 2)
 
 - **The files are the mounts, by name**: miniBox finds a file by its exact name, and the engine opens
-  `./srb2.pk3` (its WAD folder is "."). `platform/files.c` wraps `fopen`, `access`, `stat` and `remove` in both
+  `./srb2.srb` (its WAD folder is "."). `platform/files.c` wraps `fopen`, `access`, `stat` and `remove` in both
   builds: a leading `./` goes, nothing is written (a write-mode `fopen` fails, `remove` does nothing), and
   `access` is answered by opening (miniBox has none). The harnesses write their pictures with `open`/`write`,
   which the link does not wrap.
@@ -123,48 +195,45 @@ the guest build), following Chimera's `docs/porting-a-core.md` and `docs/game-co
 `waterbox/waterbox.config` is the package's declaration (Chimera's `WaterboxConfig`): one machine
 (`systemId` SRB2, `kind` game), the controller (srb2-input.c's buttons and axes, in its order - the gate's
 `declaration` leg holds them to the core's own `GetButtonName`/`GetAxisName`), the video (320x200 shown at 4:3,
-35 Hz), the audio (1260 frames a step at 44.1 kHz), lag, the memory layout, the four pk3s as firmware (2.2.15's,
-by SHA-1; the engine checks srb2, zones and characters by MD5 itself), and the settings.
+35 Hz), the audio (1260 frames a step at 44.1 kHz), lag, the memory layout, the seven data files as firmware (by
+SHA-1; the engine checks all but music.dta by MD5 itself), and the settings.
 
 **The settings are SRB2's own options**, given to the engine as `+` launch parameters by `Init`: upstream runs
 those after its configuration and `autoexec.cfg` (`M_PushSpecialParameters`, on the title's path and on
 `-warp`'s), so they are the machine's whatever a configuration says. User-decided defaults (2026-10-04),
 which differ from SRB2's own:
 
-| Setting | SRB2 option | Default (SRB2's own) |
+| Setting | SRB2 option | Default (SRB2 Legacy's own) |
 |---|---|---|
-| Play Style | `directionchar` + `configanalog`, as the play style menu sets them (`M_HandlePlaystyleMenu`): Strafe (Camera, Off), **Manual** (Movement, Off), Automatic (Movement, On), Old Analog (Camera, On) | **Manual** (Automatic) |
+| Analog Control | `useranalog`: the player faces and moves where the input points, the camera following (2.1's analog control); the fork's replacement for 2.2's Play Style | **Off** (Off) |
 | Camera Speed | `cam_speed`, 0..1, clamped, printed at 5 places | **1.0** (0.3) |
-| Camera Distance | `cam_dist`, the Manual and Strafe styles' camera (Automatic and Old Analog use `cam_simpledist`) | **192** (192) |
-| Camera Height | `cam_height`, likewise (`cam_simpleheight`) | **40** (40) |
+| Camera Distance | `cam_dist` | **160** (160) |
+| Camera Height | `cam_height` | **25** (25) |
 | Field of View | `fov`, 60..179 (`MINFOV`, `MAXFOV`), clamped, both renderers; the picture's alone. Recommended: 90 for normal levels, 120 for NiGHTS levels | **90** (90) |
-| Score/Time/Rings | `timerres`: Classic, Centiseconds, **Mania**, Tics | **Mania** (Classic) |
+| Score/Time/Rings | `timerres`: Normal, Centiseconds, **Mania**, Tics | **Mania** (Normal) |
 | Flip Camera with Gravity | `flipcam` | **Yes** (No) |
-| Automatic Braking | `autobrake` (given explicitly, so a configuration cannot turn it off) | **On** (On) |
 | Music Preference | `musicpref`: **Digital** (the `O_` songs), MIDI (the `D_` songs, on the MIDI player, at `midimusicvolume`); the sound's alone | **Digital** (Digital) |
-| Tutorial Prompt | `tutorialprompt` (the title's "play the tutorial?") | **Off** (On) |
-| Unlock Record Attack, NiGHTS Mode and Marathon Run | the game data's `SECRET_RECORDATTACK` and `SECRET_NIGHTSMODE` unlockables (SRB2 offers Marathon Run whenever Record Attack is unlocked, `m_menu.c`) | **Off** |
-| Unlock All Characters | the `SECRET_SKIN` unlockables (Amy, Fang, Metal Sonic) | **Off** |
-| Unlock All Maps in Record Attack and NiGHTS Mode | the menu's check (`M_LevelAvailableOnPlatter`: visited, `M_MapLocked`) skipped, **patch 0006** - not the game data, so an addon's maps are listed too, no visit is recorded, and no "visit map" condition unlocks anything (28 Record Attack maps in 2.2.15) | **Off** |
-| Unlock All Secrets | every unlockable (24 in 2.2.15) | **Off** |
-| Start Map Character | `+skin`, given only with a Start Map (`-warp`), run before the map starts; a locked character (Amy, Fang, Metal Sonic) needs Unlock All Characters, and a locked or unknown one plays Sonic | **empty**: Sonic |
-| Renderer | `software`, or `opengl-hw` (SRB2's OpenGL renderer through Chimera's GPU bridge, which Chimera offers only to a renderer named `-hw`; in software, with a warning in the log, when none is offered; see "OpenGL"), fixed at the start as upstream's `-renderer` | **software** (Software) |
+| Unlock Record Attack and NiGHTS Mode | the game data's `SECRET_RECORDATTACK` and `SECRET_NIGHTSMODE` unlockables (SRB2 Legacy offers Marathon Run always) | **Off** |
+| Unlock All Maps in Record Attack and NiGHTS Mode | the menu's check (`M_LevelAvailableOnPlatter`: visited, `M_MapLocked`) skipped, **patch 0004** - not the game data, so an addon's maps are listed too, no visit is recorded, and no "visit map" condition unlocks anything (21 Record Attack maps) | **Off** |
+| Unlock All Secrets | every unlockable (17) | **Off** |
+| Start Map Character | `+skin`, given only with a Start Map (`-warp`), run before the map starts; an unknown one plays Sonic | **empty**: Sonic |
+| Renderer | `software`, or `opengl-hw` (SRB2's OpenGL renderer through Chimera's GPU bridge, which Chimera offers only to a renderer named `-hw`; in software, with a warning in the log, when none is offered; see "OpenGL"), fixed at the start | **software** (Software) |
 | OpenGL Shaders | `gr_shaders`; the picture's alone | **On** (On) |
 | Resolution | the engine's one video mode (see "Resolution") | **1280x800** (1280x800) |
 | Start Map | `-warp` (empty: the intro and the title) | empty |
 
 **The unlocks** (user-decided, 2026-10-04: so a verification movie need not be made for each run) are set in
-the game data the engine has loaded, client's and server's (`srb2-driver.c`), at the start and before every
+the game data the engine has loaded (2.1's `unlockables[].unlocked`, `srb2-driver.c`), at the start and before every
 step: an add-on that loads game data of its own (`dehacked.c`) reloads it, and SRB2's own updates only ever
 unlock, so re-setting them is idempotent. They are not cheats to SRB2 (`usedCheats` is untouched): a game with
 them saves its game data, and the save data export carries them. The 1 Player menu shows Record Attack, NiGHTS
-Mode and Marathon Run with the first on, `???` without it. With the tutorial prompt off, the gate's menu movie
+Mode with the first on, `???` without them, and Marathon Run always. The gate's menu movie
 (`tests/menu-to-new-game.txt`) goes from the title through Start Game, the save and character selects, into a new
 game in Greenflower Zone.
 
-Manual is the Standard control style (`PF_DIRECTIONCHAR`, no `PF_ANALOGMODE`): the player faces where it moves
-and the camera does not turn by itself. The gate's `settings` leg reads the engine's options back
-(`run-native --print-cvar`): the defaults absent and given, and every other value of every setting.
+Analog Control off is 2.1's standard control: the player faces where the camera looks, the turn keys turn both,
+and the strafe keys strafe. The gate's `settings` leg reads the engine's options back (`run-native --print-cvar`):
+the defaults absent and given, and every other value of every setting.
 
 ## OpenGL (milestone 8, 2026-10-05)
 
@@ -202,7 +271,7 @@ assertions in softpipe's loops: the release build is 20-25% faster and the core 
 surface at the mode's size with rows top first (`OSMESA_Y_UP` 0: the frontend's layout, no conversion), and
 the finished frame copied out before the renderer draws the screen texture back (upstream does that after its
 swap). Two names needed care: the renderer's `Init` is the core's export's name, so SRB2's objects build with
-`-DInit=r_opengl_Init` (`SRB2_RENAMES`), and `GL_NO_LOGFILE` (patch 0007) keeps `ogllog.txt` out of the
+`-DInit=r_opengl_Init` (`SRB2_RENAMES`), and `GL_NO_LOGFILE` (patch 0005) keeps `ogllog.txt` out of the
 machine's files.
 
 Every byte of the GL - textures, shaders, the framebuffer - is guest memory: savestates need nothing (gate
@@ -263,7 +332,7 @@ new session (a project closed and opened again: the bridge's context outlives se
 every step, a moved context id or a `StateLoaded` since makes the renderer forget and rebuild
 (`chimera_gl_step`): every object the core ever made in the driver is deleted at once - their names are
 listed where a state does not reach (`ECL_INVISIBLE`) - then the renderer forgets its names without deleting
-any (patch 0008's `HWR_ContextLost`: the texture cache, light tables, screen and palette textures, shader
+any (patch 0006's `HWR_ContextLost`: the texture cache, light tables, screen and palette textures, shader
 programs, the sky's and models' buffers), the core's own objects are made again, and then the renderer's
 (`HWR_ContextRestored`: its states, the fallback shader, its shaders, palettes and model buffers; textures and
 light tables as they are next used). In that order, so no stale name can delete an object made since.
@@ -303,7 +372,7 @@ compatibility profile, where everything here is equally valid; not yet run there
 1920x1200) and 2560x1440 and 3840x2160 beyond them; the default is 1280x800, SRB2's own (`scr_width`/`scr_height`).
 The engine's one mode is that one (`chimera_video_set_mode`, before the start): whatever mode a configuration or
 the video menu asks for, it gets the setting's. SRB2's renderer sizes its tables by `MAXVIDWIDTH`/`MAXVIDHEIGHT`
-(1920x1200), so **patch 0005** lets a build raise them, and the core builds with 3840x2160.
+(1920x1200), so **patch 0003** lets a build raise them, and the core builds with 3840x2160.
 
 **Square pixels**: SRB2 is a modern game and is shown at the size it draws - `GetDisplayAspectX/Y` answer the
 mode's own width and height, not 4:3.
@@ -352,7 +421,7 @@ A movie row is **SRB2's own keyboard plus four axes**:
   its pitch up). The game adds
   its keys' movement to the base without clamping the sum, so a movement axis counts only while its keys are
   not held. `G_BuildTiccmd` overwrites the command's aiming with its own look state (which springs back to
-  level), so **patch 0004** lets a non-zero base aiming set the pitch.
+  level), so **patch 0002** lets a non-zero base aiming set the pitch.
 - `FrameAdvance`'s mask is the first 64 buttons; `SetButton` and `SetAxis` the rest; `GetButtonName`/
   `GetAxisName` name them, in the controller's order (for the declaration, and the harnesses' `--input`).
 - Not yet: player 2 (splitscreen), text entry (a name, the console), the joystick-style analog
@@ -363,6 +432,10 @@ The harnesses take a movie as text (`--input FILE`: `FROM-TO: Button; Axis=value
 `waterbox/tests/` holds the gate's two.
 
 ## Game State and the TAS info script (2026-10-08, user-asked)
+
+(In this fork: 2.1 has no Metal Sonic and no dash mode, so `Player.Dashmode` and the script's dash mode lines are
+gone; a spindash charges 1.0 on its first tic, then from Min Dash; and the gate's boss flashes until it is back in
+its spawn state. See "The fork". The record below is the SRB2 core's.)
 
 The user asked for a Lua TAS info script (`lua/tasinfo.lua`): speed, the angle in hex and in decimal to 4 places
 (on lines of their own), the position and the momentum on three axes, and the speed shoes, invincibility, space
@@ -388,7 +461,7 @@ its revs otherwise - the rev sound's sixths, 1 to 7; that was not taken over.)
 - **The boss as the SRB2 TAS build finds it** (`P_GetBossInfo`): the first `MF_BOSS` object among the
   thinkers; its health, flashing while `MF2_FRET` (which each boss's states clear, so there is no flash timer
   to show), and - beyond the build - its type's `spawnhealth`, for health as left / at the start.
-- **Metal Sonic's dash mode as the build shows it**: `player->dashmode` (up a tic at top speed to
+- **Metal Sonic's dash mode as the build shows it** (the SRB2 core only): `player->dashmode` (up a tic at top speed to
   `DASHMODE_MAX`, 108; dash mode from 105; down 3 a tic below it), and at 108 `player->normalspeed`, the top
   speed dash mode raises. Out of a level all of them are 0 and `Player.In Level` false.
 - **The raw values**: 16.16 fixed point, the 32-bit angle, tics. The script turns them into units, degrees
@@ -426,7 +499,7 @@ when `G_BuildTiccmd` asks for the base command, `I_BaseTiccmd`). No game logic r
 sync changes; the movie is as long as play. No upstream patch: it covers every wait loop, an add-on's cutscenes
 and 2.2.16's too. An exit (`I_Error`) leaves the cothread for good instead of longjmp'ing.
 
-Entering Greenflower Zone Act 1 is 64 lag steps (fade, title card, fade in); the intro is 193 of its first
+Entering Greenflower Zone Act 1 is 41 lag steps in 2.1 (fade, title card, fade in; 64 in 2.2); the intro is 193 of its first
 700.
 
 **After a wipe, a step can run up to three tics**: SRB2 calls `NetUpdate` three times a pass (`TryRunTics`,
@@ -552,12 +625,12 @@ runs - 04:00 never fired - and by hand: Actions > Run workflow, kind `nightly`).
 
 The gate job checks out this repository (submodules; `extern/openmpt` shallow) and Chimera (`CHIMERA_REF`,
 main), builds Chimera's native libraries and solution, builds miniBox's host and C++ guest toolchain (cached;
-the toolchain's targets named, as they are not in miniBox's default target), **fetches SRB2 2.2.15's data from
-STJr's own release** (`waterbox/fetch-data.sh`: `SRB2-v2215-Full.zip` from github.com/STJr/SRB2, the four pk3s
-checked against `waterbox.config`'s SHA-1s - they match; cached), builds the native reference and the core,
+the toolchain's targets named, as they are not in miniBox's default target), **fetches SRB2 Legacy's data from
+srb2-preservation's assets repository** (`waterbox/fetch-data.sh`: codeberg.org/srb2-preservation/assets, branch
+`legacy`, git lfs, a pinned commit; the seven files checked against `waterbox.config`'s SHA-1s; cached), builds the native reference and the core,
 runs `run-gate.sh` with the engine leg on the checkout's installed `libchimera`, builds the package stamped with
 the commit, runs Chimera's contract tests on it (`InstalledCorePackagesTests`, `MnemonicUniquenessTests`), and
-uploads `srb2-<sha>`.
+uploads `srb2legacy-<sha>`.
 
 **Every release carries `tasinfo.lua`** (user-asked, 2026-10-08): the `publish-lua` job, after `publish`, uploads
 `lua/tasinfo.lua` into the release just made and adds a line to its notes. Chimera's `publish-core.sh` uploads
@@ -568,16 +641,14 @@ newest `nightly-*` tag at the commit by name - the API's tags are lightweight, t
 The gate job checks the scripts parse (`luac5.4 -p`). The job's shell was run against a scratch repository with a
 stand-in `gh` (dev, nightly, two nightlies at one commit, none); the workflow itself first runs on GitHub.
 
-**It depends on no Chimera change.** It began as an unofficial core (github.com/P-AS/chimera-core-srb2,
-user-decided 2026-10-04); it has been on Chimera's roster since 2026-10-10 (see "On Chimera's roster"), which the
-Chimera project granted without a change here. Since Chimera's ecc06b8 (2026-10-07) the roster makes no difference
-to how a user gets a core: Chimera ships no cores and downloads nothing, the Core Manager lists the packages in the cores folder, and
+**It depends on no Chimera change.** It is an unofficial third-party core (see "Not on Chimera's roster"). Since
+Chimera's ecc06b8 (2026-10-07) the roster makes no difference to how a user gets a core: Chimera ships no cores and downloads nothing, the Core Manager lists the packages in the cores folder, and
 every core, official or not, gets there because somebody put its package there (from its releases page, or built).
-The core was adapted for that at Chimera f39db76: the README's "Using it in Chimera", `docs/BUILDING.md` and
-`AGENTS.md`, after the DSDA core's d994c4f; the build, the package and the publish job were unchanged.
+The SRB2 core was adapted for that at Chimera f39db76: the README's "Using it in Chimera", `docs/BUILDING.md` and
+`AGENTS.md`, after the DSDA core's d994c4f; this fork inherits them.
 
-Since Chimera's 74d25e1 a package says what its system and its controls are called, so nothing about SRB2 needs
-a Chimera change: `waterbox.config`'s `systemNames`, `mnemonics` and axis `header`s (see "The controller") are
+Since Chimera's 74d25e1 a package says what its system and its controls are called, so nothing about SRB2 Legacy
+needs a Chimera change: `waterbox.config`'s `systemNames`, `mnemonics` and axis `header`s (see "The controller") are
 what TAStudio, the movie text and the system lists show. Chimera's
 contract tests from its stock main run on the package, `MnemonicUniquenessTests` among them (which now holds a
 core that declares letters to declaring all of them, each writable). The former `docs/chimera-proposal.patch`
@@ -592,35 +663,17 @@ compilers, one machine. Two things that run surfaced, both fixed in the gate: a 
 folders' links to the data dangle (it is made absolute), and a run that printed nothing ended the gate silently
 under `set -e` (an empty run is now a leg's FAIL).
 
-## On Chimera's roster (2026-10-10)
+## Not on Chimera's roster
 
-Chimera's 9aff711 (2026-10-10, at its owner's request) made SRB2 an **official core**: a row in
-`official-cores.json` (`"repo": "P-AS/chimera-core-srb2"`, `"kind": "game"`), and a line in Chimera's README with
-the game cores saying its author, P-AS, publishes it. It is the first official core published outside the
-ToolAssisted-run organisation: this repository stays the user's, as a third party, and nothing about the build or
-the publish changed. Chimera's issue to us is #1 here.
-
-What it means for this repository:
-- **Chimera's CI depends on our nightlies.** Every Chimera CI run downloads the newest `nightly-*` release here
-  (`tools/fetch-cores.sh`) and runs its package tests on it (`Nightly 2026-10-10` passed, 15 of 15). A nightly
-  those tests refuse fails Chimera's CI until a fixed nightly is out, so a nightly must never carry a package that
-  Chimera's stock main refuses - which the gate's contract tests already check before publishing. Chimera's
-  fetch script drops the `-arm64` package: Chimera runs x64 guests only.
-- **Release notifications** (#1, open): each roster core announces its releases in Chimera's Discord through a
-  webhook of its repository (Settings > Webhooks, payload URL the channel's webhook + `/github`,
-  `application/json`, the Releases event only). Only the owner can add it, and the URL is a credential, asked of
-  Sergio Martin in private - not done from here.
-- **Which package** (#1's notes, user-decided 2026-10-10): the README no longer calls the core unofficial or names
-  the package `srb2.chimeraCore`, which is only the name inside a build; a release carries
-  `srb2-<version>-x64.chimeraCore` and `srb2-<version>-arm64.chimeraCore`. The README and every release's notes
-  say most users want the x64 one, the arm64 one only for those who know their device is arm64. The notes come
-  from the shared `publish-core.sh`; the `publish-lua` job, which edits them already, puts that line above the
-  table naming the two packages (once: it looks for the line first, as for `tasinfo.lua`'s).
+The SRB2 core has been on Chimera's roster since Chimera's 9aff711 (2026-10-10). This fork is not (user-decided:
+an unofficial third-party core): Chimera's CI does not fetch its nightlies, and no release notifications are set up.
+A release still carries `srb2legacy-<version>-x64.chimeraCore` and `srb2legacy-<version>-arm64.chimeraCore`, and
+its notes say most users want the x64 one (the `publish-lua` job, as in the SRB2 core).
 
 ## The game's home
 
 **SRB2's folder is the machine's root, never a folder of the host's.** `Init` starts the engine with
-`-workdir .` (patch 0003) and `-home .`. Everything SRB2 keeps is built from that folder (`srb2home`), so its
+`-workdir .` (Legacy's own, f789fc43) and `-home .`. Everything SRB2 keeps is built from that folder (`srb2home`), so its
 files are the machine's own top-level names: `config.cfg`, `gamedata.dat` (unlocks, records), `srb2sav*.ssg`
 (saves), `autoexec.cfg`, `replay/<folder>/MAPxx-*.lmp` (record attack), `luafiles/`, `addons/`. Without
 `-workdir`, the folder would be `./.srb2/`, a subfolder the flat, name-matched mounts of miniBox would have to

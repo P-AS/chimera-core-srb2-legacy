@@ -1,11 +1,13 @@
-# Building the SRB2 core
+# Building the SRB2 Legacy core
 
-This repository builds Sonic Robo Blast 2 as a Chimera game core: one game
-engine built as a core, not an emulator (Chimera's `docs/game-cores.md`). It
-is an official core, on Chimera's roster, but written and published here by
-its author (P-AS), outside the ToolAssisted-run organisation. The result is
-one file, `srb2.chimeraCore`, which Chimera loads (a release names it
-`srb2-<version>-<x64|arm64>.chimeraCore`); the game's data is the user's. The steps below follow `.github/workflows/chimera.yml`, which builds
+This repository builds SRB2 Legacy (srb2-preservation's updated fork of Sonic
+Robo Blast 2 2.1) as a Chimera game core: one game engine built as a core, not
+an emulator (Chimera's `docs/game-cores.md`). It is an unofficial third-party
+core, written and published here by its author (P-AS), forked from the SRB2
+core (https://github.com/P-AS/chimera-core-srb2). The result is one file,
+`srb2legacy.chimeraCore`, which Chimera loads (a release names it
+`srb2legacy-<version>-<x64|arm64>.chimeraCore`); the game's data is the
+user's. The steps below follow `.github/workflows/chimera.yml`, which builds
 and gates the core from a fresh clone on a public Ubuntu runner.
 
 Placeholders used below:
@@ -23,10 +25,10 @@ Placeholders used below:
 
   ```
   sudo apt-get update
-  sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl
+  sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl lua5.4 git-lfs
   ```
 
-  `curl` fetches the gate's data.
+  `git-lfs` fetches the gate's data.
 - The .NET SDK 8.0 (the workflow uses `actions/setup-dotnet@v4` with
   `dotnet-version: '8.0'`). It is needed to build the Chimera solution and to
   run Chimera's contract tests, not to build the package. Chimera's README
@@ -38,12 +40,15 @@ Placeholders used below:
   miniBox's guest sysroot (`waterbox/guest.mk`). The gate's hashes are the
   same from GCC 13 (`ubuntu-latest`) and GCC 16.
 - What the scripts build or fetch themselves:
-  - SRB2 2.2.15's data, for the gate: `waterbox/fetch-data.sh [<folder>]`
-    downloads STJr's own `SRB2-v2215-Full.zip` from github.com/STJr/SRB2's
-    releases, takes out the four pk3s and checks each against the SHA-1
-    `waterbox.config` declares (default folder `build/srb2-2.2.15`; a folder
-    already holding them, checked, is left as it is). CI caches that folder.
-    Building the package downloads nothing.
+  - SRB2 Legacy's data, for the gate: `waterbox/fetch-data.sh [<folder>]`
+    takes the seven declared files from srb2-preservation's assets
+    repository (https://codeberg.org/srb2-preservation/assets, branch
+    `legacy`, through git lfs, at the commit the script pins) and checks each
+    against the SHA-1 `waterbox.config` declares (default folder
+    `build/srb2-legacy-data`; a folder already holding them, checked, is left
+    as it is). They are the same files as SRB2 Legacy 2.1.30's
+    `SRB2-Legacy-v2130-Full.zip`. CI caches that folder. Building the package
+    downloads nothing.
 
 ## Get the sources
 
@@ -52,7 +57,7 @@ The workflow checks out both repositories with their submodules, recursively
 By hand:
 
 ```
-git clone --recursive https://github.com/P-AS/chimera-core-srb2.git <core>
+git clone --recursive https://github.com/P-AS/chimera-core-srb2-legacy.git <core>
 git clone --recursive https://github.com/ToolAssisted-run/chimera.git <chimera>
 ```
 
@@ -64,7 +69,8 @@ git -C <chimera> submodule update --init --recursive
 ```
 
 This repository has six submodules (`.gitmodules`): `extern/SRB2` (the
-engine: upstream master, net-compatible with 2.2.15), `extern/ogg`,
+engine: SRB2 Legacy, https://github.com/srb2-preservation/srb2-legacy, at
+its `SRB2_release_2.1.30` tag), `extern/ogg`,
 `extern/vorbis`, `extern/gme`, `extern/openmpt` and `extern/opnmidi`
 (libOPNMIDI v1.6.2, of which only the parts the MIDI player is built on are
 compiled). `extern/openmpt` is
@@ -142,8 +148,8 @@ The gate does not build them: run these before it.
   series is first tried on a scratch copy, so a series that does not apply
   never touches the tree. `SRB2_TREE` (`PATCH_TREE` for a library) points it
   at another checkout.
-- **The guest core** (`guest.mk`): `build/guest/core.wbx`. It is SRB2, zlib
-  and libpng from SRB2's `libs/`, libogg, libvorbis, GME, libopenmpt, the
+- **The guest core** (`guest.mk`): `build/guest/core.wbx`. It is SRB2 Legacy,
+  zlib 1.2.6 and libpng 1.2.46 from SRB2 Legacy's `libs/`, libogg, libvorbis, GME, libopenmpt, the
   MIDI player on libOPNMIDI's sequencer, bank and MAME YM2612, glad
   (the GPU bridge's GL loader) and the core's own sources, built with the system compilers over miniBox's
   guest sysroot. miniBox's `check-wbx.sh` checks the result (no thread-local
@@ -178,15 +184,16 @@ cd <core>
 
 `waterbox/build-package.sh [-m <miniBox dir>] [-r <chimera root or bundle>] [-o <out dir>]`:
 
-- `-r <chimera root>` writes `<chimera root>/build/Cores/srb2.chimeraCore` and
-  takes miniBox from that checkout unless `-m` or `MINIBOX_DIR` names another.
-  It also removes `<chimera root>/build/CoreCache/srb2-*`. This is what CI runs
-  (`-r chimera-checkout`).
+- `-r <chimera root>` writes `<chimera root>/build/Cores/srb2legacy.chimeraCore`
+  and takes miniBox from that checkout unless `-m` or `MINIBOX_DIR` names
+  another. It also removes `<chimera root>/build/CoreCache/srb2legacy-*`. This
+  is what CI runs (`-r chimera-checkout`).
 - `-r <Chimera bundle>` (a folder with `Chimera.exe`) writes
-  `<bundle>/Cores/srb2.chimeraCore`, and clears `<bundle>/CoreCache/srb2-*`.
-  A bundle has no miniBox: name it with `-m` or `MINIBOX_DIR`.
-- `-o <out dir>` writes `<out dir>/srb2.chimeraCore` instead.
-- With neither, the package is `<core>/build/package/srb2.chimeraCore`.
+  `<bundle>/Cores/srb2legacy.chimeraCore`, and clears
+  `<bundle>/CoreCache/srb2legacy-*`. A bundle has no miniBox: name it with
+  `-m` or `MINIBOX_DIR`.
+- `-o <out dir>` writes `<out dir>/srb2legacy.chimeraCore` instead.
+- With neither, the package is `<core>/build/package/srb2legacy.chimeraCore`.
 
 The script builds the guest (`guest.mk`; the log is `build/package-make.log`),
 checks `core.wbx` and the declaration, and packs `core.wbx`,
@@ -211,7 +218,7 @@ CI publishes what its gate passed as this repository's own releases: a rolling
 `dev` release on every green push to `main`, and a dated `nightly-YYYY-MM-DD`
 release from the scheduled run (04:23 UTC, only when `main` moved since the
 last one; Actions > Run workflow with kind `nightly` publishes one by hand).
-The gate job uploads the package as the artifact `srb2-<commit>`
+The gate job uploads the package as the artifact `srb2legacy-<commit>`
 (`actions/upload-artifact@v7`), and the publish job hands it to Chimera's
 public reusable workflow `publish-core.yml`. Then this repository's own
 `publish-lua` job uploads `lua/tasinfo.lua`, from the same commit, into that
@@ -223,14 +230,15 @@ There is no manual equivalent.
 
 Chimera ships no cores and downloads nothing: it has no network code. A core
 gets into Chimera because somebody put its package file in the cores folder.
-This core is in the list of cores Chimera's README links to (since Chimera's
-9aff711), but nothing here depends on it.
+This core is not on Chimera's roster of official cores, and nothing here
+depends on Chimera beyond its stock `main`.
 
 - **A release bundle of Chimera**: download the package from this
   repository's Releases page
-  (https://github.com/P-AS/chimera-core-srb2/releases), or build it, and put
-  it in the `Cores` folder beside `Chimera.exe`. A release has
-  `srb2-<version>-x64.chimeraCore` and `srb2-<version>-arm64.chimeraCore`:
+  (https://github.com/P-AS/chimera-core-srb2-legacy/releases), or build it,
+  and put it in the `Cores` folder beside `Chimera.exe`. A release has
+  `srb2legacy-<version>-x64.chimeraCore` and
+  `srb2legacy-<version>-arm64.chimeraCore`:
   you most likely want the x64 one; take the arm64 one only if you know you
   are using an arm64 device. Put only one of them in the folder. Another folder can be chosen
   in File > Core Manager > Change folder...
@@ -248,8 +256,8 @@ Chimera's sandbox (miniBox) on either.
 
 ```
 cd <core>
-./waterbox/fetch-data.sh build/srb2-2.2.15
-MINIBOX_DIR=<minibox> ./waterbox/run-gate.sh -d build/srb2-2.2.15 -c <chimera>/build
+./waterbox/fetch-data.sh build/srb2-legacy-data
+MINIBOX_DIR=<minibox> ./waterbox/run-gate.sh -d build/srb2-legacy-data -c <chimera>/build
 ```
 
 This is the command CI runs (after `fetch-data.sh` and both builds). The gate
@@ -266,10 +274,10 @@ script's header lists them, each with its teeth: equivalence, steps,
 savestates, input, properties, audio, files, exports, declaration, settings,
 resolution, opengl, engine and time.
 
-Usage: `run-gate.sh [-d <SRB2 data folder>] [-m <miniBox dir>] [-c <Chimera bundle or build/>]`
+Usage: `run-gate.sh [-d <SRB2 Legacy data folder>] [-m <miniBox dir>] [-c <Chimera bundle or build/>]`
 
-- `-d <dir>` names a folder with 2.2.15's srb2.pk3, zones.pk3,
-  characters.pk3 and music.pk3. Default `/usr/share/games/SRB2`.
+- `-d <dir>` names a folder with the seven declared files (below). Default
+  `/usr/share/games/srb2-legacy`.
 - `-c <dir>` runs the engine leg: a Chimera checkout's installed `build/`
   (`meson install --libdir dll`) or a bundle. The gate packages the core into
   `build/gate/package` and opens it through `<dir>/dll/libchimera.so`, as the
@@ -299,20 +307,28 @@ solution built and no game files.
 
 ## Files the core needs at run time
 
-The package carries none of the game's data. A project brings SRB2 2.2.15's
-four pk3s as firmware; `waterbox/waterbox.config` declares them with their
-SHA-1s:
+The package carries none of the game's data. A project brings SRB2 Legacy
+2.1.30's seven data files as firmware; `waterbox/waterbox.config` declares
+them with their SHA-1s:
 
 | Firmware | What it is |
 | --- | --- |
-| `srb2.pk3` | The game's graphics, sounds, objects and scripts |
-| `zones.pk3` | The game's levels |
-| `characters.pk3` | Sonic, Tails, Knuckles, Amy, Fang and Metal Sonic |
-| `music.pk3` | The game's music |
+| `srb2.srb` | The game's graphics, sounds, objects and scripts |
+| `zones.dta` | The game's levels |
+| `player.dta` | Sonic, Tails and Knuckles |
+| `rings.dta` | The ring-slinger's weapon rings |
+| `patch.dta` | 2.1.25's fixes to the data |
+| `music.dta` | The game's music |
+| `legacy.pk3` | SRB2 Legacy's own additions (the 2.2 level platter's and Marathon Run's graphics) |
 
-- They are 2.2.15's, as STJr's release and the usual installs have them
-  (`/usr/share/games/SRB2` on many Linux systems). The engine itself refuses
-  srb2.pk3, zones.pk3 and characters.pk3 whose MD5 is not 2.2.15's.
+- The first six are SRB2 2.1.25's, and `legacy.pk3` is SRB2 Legacy 2.1.30's,
+  as SRB2 Legacy's `SRB2-Legacy-v2130-Full.zip`, srb2-preservation's assets
+  repository and the usual installs have them (`/usr/share/games/srb2-legacy`
+  on many Linux systems). The engine itself refuses srb2.srb, zones.dta,
+  player.dta, rings.dta, patch.dta and legacy.pk3 whose MD5 is not theirs,
+  and a music.dta carrying anything but music and sounds. Upstream treats
+  legacy.pk3 as optional; the core declares it always, as Chimera has no
+  optional firmware and the engine loads it whenever it is there.
 - A project's own files (`waterbox/file_slots.json`) are optional: Add-ons
   (`.pk3`, `.wad`, `.soc`, `.lua`, in load order, as SRB2's `-file` loads
   them) and Save data (`gamedata.dat` and `srb2sav*.ssg`, as Export Save Data
@@ -341,10 +357,11 @@ SHA-1s:
 - `build the native reference first` or `build the core first` (the gate):
   the gate does not build them. Run the two `make` commands.
 - `no data folder at ...` or `no <file> in <dir>` (the gate): `-d` names no
-  folder with the four pk3s. Run `./waterbox/fetch-data.sh` and pass its
+  folder with the seven data files. Run `./waterbox/fetch-data.sh` and pass its
   folder.
+- `fetch-data: git-lfs is needed` (`fetch-data.sh`): install git-lfs.
 - `<file>: sha1 ..., declared ...` (`fetch-data.sh`): the download is not
-  2.2.15's data. Run it again: it downloads again and checks again.
+  the declared data. Run it again: it downloads again and checks again.
 - `the guest build failed (build/package-make.log)` (`build-package.sh`): read
   that log.
 - `default_keybinds.json does not match the declared buttons`, or a message

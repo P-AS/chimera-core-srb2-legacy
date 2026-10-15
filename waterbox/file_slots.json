@@ -1,5 +1,5 @@
 {
-  "_comment": "An SRB2 project is the game (its four pk3s are firmware) and, if it wants them, add-ons and save data.",
+  "_comment": "An SRB2 Legacy project is the game (its data files are firmware) and, if it wants them, add-ons and save data.",
   "slots": [
     {
       "id": "addons",

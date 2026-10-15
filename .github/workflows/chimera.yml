@@ -1,26 +1,27 @@
 name: chimera waterbox core
 
-# The core as Chimera ships it: a sandboxed core.wbx package. An official core,
-# on Chimera's roster since Chimera's 9aff711 (2026-10-10), published by its
-# author outside the ToolAssisted-run organisation
-# (github.com/P-AS/chimera-core-srb2): it builds against Chimera's public main
-# and publishes into this repository's own releases through Chimera's reusable
-# publish workflow (the aarch64 fork's). Chimera's CI fetches the newest
-# nightly's x64 package on every run and runs its package tests on it.
+# The core as Chimera ships it: a sandboxed core.wbx package. An unofficial
+# third-party core for SRB2 Legacy (srb2-preservation's updated fork of SRB2
+# 2.1), published by its author (github.com/P-AS/chimera-core-srb2-legacy),
+# forked from the SRB2 core (github.com/P-AS/chimera-core-srb2): it builds
+# against Chimera's public main and publishes into this repository's own
+# releases through Chimera's reusable publish workflow (the aarch64 fork's).
 #
-# SRB2's data is Sonic Team Junior's, freely distributed by them and never
-# carried here: the gate downloads STJr's own 2.2.15 release
-# (waterbox/fetch-data.sh, SRB2-v2215-Full.zip from github.com/STJr/SRB2) and
-# checks its four pk3s against the firmware the package declares. On it: the
-# native reference and the package build, fresh, from the pinned upstream with
-# the patch series applied; the equivalence, steps, savestates, input, audio
-# (Ogg Vorbis, GME, libopenmpt), files, exports, declaration, settings,
-# resolution, opengl (with no GPU bridge, opengl-hw draws in software and
-# says so) and time legs; the engine leg also runs opengl-hw through Chimera's
-# GPU bridge when the runner's EGL gives a context (a runner has no GPU: llvmpipe, or a SKIP); the package through Chimera's own engine (the
-# gate's engine leg) and Chimera's contract tests. Every release also carries
-# lua/tasinfo.lua, the TAS info overlay for Chimera's Lua Console (the
-# publish-lua job), checked to parse by the gate job.
+# SRB2's data is Sonic Team Junior's, freely distributed and never carried
+# here: the gate takes it from srb2-preservation's assets repository
+# (waterbox/fetch-data.sh, codeberg.org/srb2-preservation/assets through git
+# lfs, at a pinned commit) and checks its seven files against the firmware the
+# package declares. On it: the native reference and the package build, fresh,
+# from the pinned upstream with the patch series applied; the equivalence,
+# steps, savestates, input, audio (Ogg Vorbis, GME, libopenmpt), files,
+# exports, declaration, settings, resolution, opengl (with no GPU bridge,
+# opengl-hw draws in software and says so) and time legs; the engine leg also
+# runs opengl-hw through Chimera's GPU bridge when the runner's EGL gives a
+# context (a runner has no GPU: llvmpipe, or a SKIP); the package through
+# Chimera's own engine (the gate's engine leg) and Chimera's contract tests.
+# Every release also carries lua/tasinfo.lua, the TAS info overlay for
+# Chimera's Lua Console (the publish-lua job), checked to parse by the gate
+# job.
 #
 # The gate runs twice, once per host CPU, on a runner of that CPU: x86-64
 # against Chimera's public main, and aarch64 (miniBox's aarch64 machine)
@@ -28,7 +29,7 @@ name: chimera waterbox core
 # branch aarch64, whose extern/chimera-common-minibox is
 # github.com/P-AS/chimera-common-minibox). Both must pass for a release, and
 # both packages are in it, each named by the leg's CPU:
-# srb2-<version>-x64.chimeraCore and srb2-<version>-arm64.chimeraCore.
+# srb2legacy-<version>-x64.chimeraCore and srb2legacy-<version>-arm64.chimeraCore.
 
 on:
   pull_request:
@@ -93,7 +94,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl lua5.4
+          sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl lua5.4 git-lfs
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -135,15 +136,16 @@ jobs:
         # what publish-lua puts in every release must at least load
         run: for f in lua/*.lua; do luac5.4 -p "$f"; done
 
-      - name: Cache SRB2 2.2.15's data
+      - name: Cache SRB2 Legacy's data
         uses: actions/cache@v4
         with:
-          path: build/srb2-2.2.15
-          key: srb2-2.2.15-data-${{ hashFiles('waterbox/waterbox.config') }}
+          path: build/srb2-legacy-data
+          key: srb2-legacy-data-${{ hashFiles('waterbox/waterbox.config', 'waterbox/fetch-data.sh') }}
 
-      - name: Fetch SRB2 2.2.15's data
-        # STJr's own release, checked against the declared firmware's SHA-1s
-        run: ./waterbox/fetch-data.sh build/srb2-2.2.15
+      - name: Fetch SRB2 Legacy's data
+        # srb2-preservation's assets repository (git lfs), checked against the
+        # declared firmware's SHA-1s
+        run: ./waterbox/fetch-data.sh build/srb2-legacy-data
 
       - name: Build the native reference and the core
         env:
@@ -155,7 +157,7 @@ jobs:
       - name: Core gate
         env:
           MINIBOX_DIR: ${{ github.workspace }}/chimera-checkout/extern/chimera-common-minibox
-        run: ./waterbox/run-gate.sh -d build/srb2-2.2.15 -c "$GITHUB_WORKSPACE/chimera-checkout/build"
+        run: ./waterbox/run-gate.sh -d build/srb2-legacy-data -c "$GITHUB_WORKSPACE/chimera-checkout/build"
 
       - name: Build and install the package
         # The commit is the core's authoritative version: this build is the one
@@ -181,13 +183,13 @@ jobs:
             --filter "FullyQualifiedName~InstalledCorePackagesTests|FullyQualifiedName~MnemonicUniquenessTests"
 
       - name: Publish the core package
-        # as srb2-<sha>-<arch>: the shared publish names it for the release,
-        # srb2-<version>-<arch>.chimeraCore, and checks its core.wbx is built
-        # for that CPU
+        # as srb2legacy-<sha>-<arch>: the shared publish names it for the
+        # release, srb2legacy-<version>-<arch>.chimeraCore, and checks its
+        # core.wbx is built for that CPU
         uses: actions/upload-artifact@v7
         with:
-          name: srb2-${{ github.sha }}-${{ matrix.arch }}
-          path: chimera-checkout/build/Cores/srb2.chimeraCore
+          name: srb2legacy-${{ github.sha }}-${{ matrix.arch }}
+          path: chimera-checkout/build/Cores/srb2legacy.chimeraCore
           if-no-files-found: error
 
       - name: Upload the gate work dir on failure
@@ -205,7 +207,8 @@ jobs:
     # What the gate passed, published as this core's own release: a rolling
     # `dev` on every green push to main, an immutable `nightly-YYYY-MM-DD` from
     # the scheduled run, each carrying both packages,
-    # srb2-<version>-x64.chimeraCore and srb2-<version>-arm64.chimeraCore.
+    # srb2legacy-<version>-x64.chimeraCore and
+    # srb2legacy-<version>-arm64.chimeraCore.
     # The logic is Chimera's tools/publish-core.sh, through the one reusable
     # workflow every core publishes with - the aarch64 fork's, which publishes
     # a package per CPU, running the fork's own publish-core.sh.
@@ -216,9 +219,9 @@ jobs:
       contents: write
     uses: P-AS/chimera/.github/workflows/publish-core.yml@aarch64
     with:
-      core-id: srb2
-      artifact: srb2-${{ github.sha }}
-      package: srb2.chimeraCore
+      core-id: srb2legacy
+      artifact: srb2legacy-${{ github.sha }}
+      package: srb2legacy.chimeraCore
       arches: x64 arm64
       kind: ${{ github.event.inputs.kind }}
       chimera-repository: P-AS/chimera
@@ -282,7 +285,7 @@ jobs:
           esac
           case "$notes" in
             *tasinfo.lua*) ;;
-            *) notes=$(printf '%s\n\n%s' "$notes" "\`tasinfo.lua\` is the TAS info overlay (speed, angle, position, momentum, spindash revs, timers, boss): open it in Chimera's **Tools > Lua Console** with an SRB2 project loaded (the README's \"Game State and the TAS info script\").")
+            *) notes=$(printf '%s\n\n%s' "$notes" "\`tasinfo.lua\` is the TAS info overlay (speed, angle, position, momentum, spindash revs, timers, boss): open it in Chimera's **Tools > Lua Console** with an SRB2 Legacy project loaded (the README's \"Game State and the TAS info script\").")
                changed=1 ;;
           esac
           if [ "$changed" = 1 ]; then

@@ -18,7 +18,7 @@
 #include "platform/chimera-platform.h"
 
 /* the largest picture the core reports: the largest resolution setting
- * (sources.mk raises the engine's MAXVIDWIDTH/HEIGHT to it, patches/0005) */
+ * (sources.mk raises the engine's MAXVIDWIDTH/HEIGHT to it, patches/0003) */
 #define VIDEO_MAX_W 3840
 #define VIDEO_MAX_H 2160
 /* a step is a tic: 44100/35 stereo samples */
@@ -44,48 +44,37 @@ ECL_EXPORT const char *GetLoadError(void) { return g_load_error; }
  *   warp            a map to start in, as the game's -warp takes it (a number,
  *                   or MAPxx); empty: the game's own start, the intro and title
  *   skin            the character Start Map plays as, by its skin name
- *                   (sonic, tails, knuckles, amy, fang, metalsonic, or an
- *                   addon's), as the game's +skin; empty: its own default,
- *                   Sonic. Only with a Start Map: otherwise the game's
- *                   character select chooses
- *   playStyle       the 1P play style menu's choice, as its two options:
- *                     Strafe     directionchar Camera,   configanalog Off
- *                     Manual     directionchar Movement, configanalog Off
- *                     Automatic  directionchar Movement, configanalog On
- *                     Old Analog directionchar Camera,   configanalog On
- *                   (M_HandlePlaystyleMenu); the core's default Manual
+ *                   (sonic, tails, knuckles, or an addon's), as the game's
+ *                   +skin; empty: its own default, Sonic. Only with a Start
+ *                   Map: otherwise the game's character select chooses
+ *   analogControl   useranalog, 2.1's Analog Control: the player faces and
+ *                   moves where the input points, not where the camera
+ *                   looks; default Off, SRB2's own
  *   cameraSpeed     cam_speed, 0 to 1; the core's default 1.0
  *   cameraDistance  cam_dist, the camera's distance behind the player in
- *                   map units; SRB2's default 192
- *   cameraHeight    cam_height, its height above the player; SRB2's
- *                   default 40. These two are the Manual and Strafe play
- *                   styles' camera: Automatic and Old Analog use SRB2's
- *                   "simple" camera (cam_simpledist, cam_simpleheight)
+ *                   map units; SRB2 Legacy's default 160
+ *   cameraHeight    cam_height, its height above the player; SRB2
+ *                   Legacy's default 25
  *   fov             fov, the field of view in degrees, 60 to 179 (SRB2's
  *                   MINFOV, MAXFOV), both renderers; SRB2's default 90.
  *                   Recommended 90 for normal levels, 120 for NiGHTS
  *                   levels. The picture's alone
- *   scoreTimeRings  timerres: Classic, Centiseconds, Mania, Tics; default Mania
+ *   scoreTimeRings  timerres: Normal, Centiseconds, Mania, Tics; default Mania
  *   flipCamera      flipcam: the camera flips with gravity; default Yes
- *   autoBrake       autobrake: the player brakes when no direction is
- *                   held; default On (SRB2's own too)
  *   musicPref       musicpref: which of a song's two versions plays, Digital
  *                   (O_, Ogg Vorbis) or MIDI (D_, on emulated YM2612s,
  *                   platform/midi_fm.cpp); default Digital, SRB2's own. The
  *                   sound's alone
- *   tutorialPrompt  tutorialprompt: the title's "play the tutorial?"
- *                   question on a first start; default Off
  *   unlockModes     Record Attack and NiGHTS Mode unlocked from the start
- *                   (SRB2 offers Marathon Run whenever Record Attack is); Off
- *   unlockCharacters every character unlocked; Off
+ *                   (SRB2 Legacy always offers Marathon Run); Off
  *   unlockMaps      every map Record Attack and NiGHTS Mode list shown as
  *                   available, visited or not and locked or not - the
- *                   menu's check (patches/0006), not the game data, so an
+ *                   menu's check (patches/0004), not the game data, so an
  *                   addon's maps are too; Off
- *   unlockAll       every unlockable (the modes, the characters, level select,
- *                   sound test, Pandora's Box, the emblem hints and radar...);
- *                   Off. The unlocks are the game data's (srb2-driver.c), so
- *                   a movie needs no run that earns them
+ *   unlockAll       every unlockable (the modes, level select, sound test,
+ *                   Pandora's Box, the emblem hints and radar...); Off. The
+ *                   unlocks are the game data's (srb2-driver.c), so a movie
+ *                   needs no run that earns them
  *   resolution      the picture's size, WxH: SRB2's own video modes
  *                   (sdl/i_video.c's windowedModes) and 2560x1440, 3840x2160;
  *                   default 1280x800, SRB2's own. The picture's alone: the
@@ -103,13 +92,7 @@ ECL_EXPORT const char *GetLoadError(void) { return g_load_error; }
  *                   OpenGL), so a movie is the renderer it was made with;
  *                   default software
  */
-static const char *const g_playstyles[][3] = {
-	{ "Strafe", "Camera", "Off" },
-	{ "Manual", "Movement", "Off" },
-	{ "Automatic", "Movement", "On" },
-	{ "Old Analog", "Camera", "On" },
-};
-static const char *const g_timerres[] = { "Classic", "Centiseconds", "Mania", "Tics" };
+static const char *const g_timerres[] = { "Normal", "Centiseconds", "Mania", "Tics" };
 static const char *const g_musicpref[] = { "Digital", "MIDI" };
 
 /* the argument list: the engine keeps pointers into it for the run */
@@ -156,7 +139,7 @@ static void setting_float(const char *name, const char *option, double def, doub
 
 static void settings_args(void)
 {
-	char warp[16], skin[32], style[32], timer[32];
+	char warp[16], skin[32], timer[32];
 
 	if (wbx_setting_str("warp", warp, (int)sizeof warp) > 0 && warp[0])
 	{
@@ -170,20 +153,13 @@ static void settings_args(void)
 		}
 	}
 
-	int st = 1; /* Manual */
-	if (wbx_setting_str("playStyle", style, (int)sizeof style) > 0)
-		for (int i = 0; i < 4; i++)
-			if (!strcmp(style, g_playstyles[i][0]))
-				st = i;
-	arg("+directionchar");
-	arg(g_playstyles[st][1]);
-	arg("+configanalog");
-	arg(g_playstyles[st][2]);
+	arg("+useranalog");
+	arg(wbx_setting_bool("analogControl", 0) ? "On" : "Off");
 
 	setting_float("cameraSpeed", "+cam_speed", 1.0, 0.0, 1.0);
 	/* the engine's fixed point holds +-32767 */
-	setting_float("cameraDistance", "+cam_dist", 192.0, -32767.0, 32767.0);
-	setting_float("cameraHeight", "+cam_height", 40.0, -32767.0, 32767.0);
+	setting_float("cameraDistance", "+cam_dist", 160.0, -32767.0, 32767.0);
+	setting_float("cameraHeight", "+cam_height", 25.0, -32767.0, 32767.0);
 	setting_float("fov", "+fov", 90.0, 60.0, 179.0);
 
 	int tr = 2; /* Mania */
@@ -197,9 +173,6 @@ static void settings_args(void)
 	arg("+flipcam");
 	arg(wbx_setting_bool("flipCamera", 1) ? "Yes" : "No");
 
-	arg("+autobrake");
-	arg(wbx_setting_bool("autoBrake", 1) ? "On" : "Off");
-
 	char pref[16];
 	int mp = 0; /* Digital */
 	if (wbx_setting_str("musicPref", pref, (int)sizeof pref) > 0)
@@ -209,11 +182,8 @@ static void settings_args(void)
 	arg("+musicpref");
 	arg(g_musicpref[mp]);
 
-	arg("+tutorialprompt");
-	arg(wbx_setting_bool("tutorialPrompt", 0) ? "On" : "Off");
-
-	srb2_set_unlocks(wbx_setting_bool("unlockModes", 0), wbx_setting_bool("unlockCharacters", 0),
-		wbx_setting_bool("unlockAll", 0), wbx_setting_bool("unlockMaps", 0));
+	srb2_set_unlocks(wbx_setting_bool("unlockModes", 0), wbx_setting_bool("unlockAll", 0),
+		wbx_setting_bool("unlockMaps", 0));
 
 	char res[32];
 	int w = 1280, h = 800;
@@ -226,15 +196,22 @@ static void settings_args(void)
 	if (wbx_setting_str("renderer", renderer, (int)sizeof renderer) > 0)
 		mode = !strcmp(renderer, "opengl-hw");
 	chimera_video_set_renderer(mode);
+	/* and SRB2 Legacy's own way to fix it at the start: without one of these
+	 * its start takes the configuration's renderer (Software by default) and
+	 * asks to switch to it, which the machine refuses (i_video.c's
+	 * VID_CheckRenderer) - after the start has flushed half of the OpenGL
+	 * renderer's caches. -opengl counts only if OpenGL started; where it did
+	 * not, the machine draws in software and the switch to OpenGL a
+	 * configuration may ask for is refused */
+	arg(mode ? "-opengl" : "-software");
 
 	/* the OpenGL renderer's shaders (gr_shaders): the picture's alone */
 	arg("+gr_shaders");
 	arg(wbx_setting_bool("glShaders", 1) ? "On" : "Off");
 }
 
-/* the engine started as upstream's main starts it. Its folder (-workdir,
- * patches/0003: configuration, game data, saves, replays) is the machine's
- * own root, so its files are the machine's names - "config.cfg",
+/* the engine started as upstream's main starts it. Its folder (-workdir:
+ * configuration, game data, saves, replays) is the machine's own root, so its files are the machine's names - "config.cfg",
  * "gamedata.dat" - never a folder of the host's; -home, the user's home it
  * otherwise derives that from (the host's $HOME, which the core never
  * answers), is required and unused. */

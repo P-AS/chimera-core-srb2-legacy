@@ -28,14 +28,14 @@
 #include "d_main.h"
 #include "m_argv.h"
 #include "doomstat.h"
-#include "netcode/d_clisrv.h"
+#include "d_clisrv.h"
 #include "command.h"
 #include "g_game.h"
 #include "p_local.h"
 #include "p_tick.h"
 #include "m_random.h"
 #include "m_cond.h"
-#include "r_skins.h"
+#include "r_things.h"
 #include "m_menu.h"
 
 #include "chimera-platform.h"
@@ -122,62 +122,47 @@ int srb2_start(int argc, char **argv)
 }
 
 /* ---- the unlocks a project starts with (its settings): set in the game data
- * the game has loaded, client's and server's, before every step - so a
- * reload of it (an add-on's own game data, dehacked.c) keeps them. The
- * game's own updates only ever unlock, so nothing takes them back. */
-static int g_unlock_modes, g_unlock_skins, g_unlock_all;
+ * the game has loaded (unlockables[]) before every step - so a reload of it
+ * (an add-on's own unlockables, dehacked.c) keeps them. The game's own
+ * updates only ever unlock, so nothing takes them back. 2.1 locks no
+ * character and always offers Marathon Run. */
+static int g_unlock_modes, g_unlock_all;
 
-void srb2_set_unlocks(int modes, int skins, int all, int maps)
+void srb2_set_unlocks(int modes, int all, int maps)
 {
 	g_unlock_modes = modes;
-	g_unlock_skins = skins;
 	g_unlock_all = all;
-	/* the menu's own check, not the game data (patches/0006) */
+	/* the menu's own check, not the game data (patches/0004) */
 	menu_allmapsavailable = maps ? true : false;
-}
-
-static void apply_unlocks(gamedata_t *d)
-{
-	if (!d)
-		return;
-	for (int i = 0; i < MAXUNLOCKABLES; i++)
-	{
-		const INT16 t = unlockables[i].type;
-		if (g_unlock_all
-			|| (g_unlock_modes && (t == SECRET_RECORDATTACK || t == SECRET_NIGHTSMODE))
-			|| (g_unlock_skins && t == SECRET_SKIN))
-			d->unlocked[i] = true;
-	}
 }
 
 static void unlocks(void)
 {
-	if (!g_unlock_modes && !g_unlock_skins && !g_unlock_all)
+	if (!g_unlock_modes && !g_unlock_all)
 		return;
-	apply_unlocks(clientGamedata);
-	apply_unlocks(serverGamedata);
+	for (int i = 0; i < MAXUNLOCKABLES; i++)
+	{
+		const INT16 t = unlockables[i].type;
+		if (g_unlock_all || (g_unlock_modes && (t == SECRET_RECORDATTACK || t == SECRET_NIGHTSMODE)))
+			unlockables[i].unlocked = true;
+	}
 }
 
 /* what is unlocked, for the native reference's diagnostics */
 const char *chimera_unlocks_summary(void)
 {
 	static char out[128];
-	int ra = 0, nights = 0, skins = 0, skinsall = 0, n = 0, all = 0;
+	int ra = 0, nights = 0, n = 0, all = 0;
 	for (int i = 0; i < MAXUNLOCKABLES; i++)
 	{
 		const INT16 t = unlockables[i].type;
-		const int u = clientGamedata && clientGamedata->unlocked[i];
+		const int u = unlockables[i].unlocked != 0;
 		if (!unlockables[i].name[0])
 			continue;
 		all++;
 		n += u;
 		ra |= t == SECRET_RECORDATTACK && u;
 		nights |= t == SECRET_NIGHTSMODE && u;
-		if (t == SECRET_SKIN)
-		{
-			skinsall++;
-			skins += u;
-		}
 	}
 	/* the maps Record Attack offers: m_menu.c's list mode (an enum private to
 	 * it, LLM_RECORDATTACK 2) set for the count, then put back */
@@ -188,21 +173,22 @@ const char *chimera_unlocks_summary(void)
 	for (int i = 0; i < NUMMAPS; i++)
 		ramaps += M_CanShowLevelInList(i, -1) ? 1 : 0;
 	levellistmode = mode;
-	snprintf(out, sizeof out, "recordattack %d nights %d skins %d/%d all %d/%d ramaps %d", ra, nights, skins, skinsall, n, all, ramaps);
+	snprintf(out, sizeof out, "recordattack %d nights %d all %d/%d ramaps %d", ra, nights, n, all, ramaps);
 	return out;
 }
 
 /* the player's skin, for the native reference's diagnostics */
 const char *chimera_player_skin(void)
 {
-	return gamestate == GS_LEVEL && playeringame[consoleplayer] ? skins[players[consoleplayer].skin]->name : "(none)";
+	return gamestate == GS_LEVEL && playeringame[consoleplayer] ? skins[players[consoleplayer].skin].name : "(none)";
 }
 
 /* ---- the Game State domain (Chimera's docs/game-cores.md, "Properties"): a
  * copy of what a TASer watches, made after every step - the player's object
  * (its position, momentum and angle), the speed the game reckons, the
  * powers' timers, what a conveyor or a moving platform adds to the player's
- * momentum, the spindash's charge, Metal Sonic's dash mode, and the boss. Read-only: the game would overwrite a poke on its next tic.
+ * momentum, the spindash's charge, the top speed, and the boss. Read-only:
+ * the game would overwrite a poke on its next tic.
  * In the machine's memory, so a savestate carries it. */
 struct game_state
 {
@@ -230,8 +216,7 @@ struct game_state
 	UINT8 pad2[2];
 	INT32 boss_health;    /* 92: its health */
 	INT32 boss_max_health; /* 96: its type's spawnhealth */
-	UINT32 dashmode;      /* 100: player->dashmode, tics */
-	INT32 normalspeed;    /* 104: player->normalspeed, 16.16 */
+	INT32 normalspeed;    /* 100: player->normalspeed, 16.16 */
 };
 
 static struct game_state g_state;
@@ -267,14 +252,13 @@ static void update_game_state(void)
 	g_state.mindash = p->mindash;
 	g_state.maxdash = p->maxdash;
 	g_state.pflags = (UINT32)p->pflags;
-	g_state.dashmode = (UINT32)p->dashmode;
 	g_state.normalspeed = p->normalspeed;
 
 	/* the boss as the SRB2 TAS build finds it (P_GetBossInfo): the first
 	 * object with MF_BOSS among the thinkers */
-	for (thinker_t *th = thlist[THINK_MOBJ].next; th && th != &thlist[THINK_MOBJ]; th = th->next)
+	for (thinker_t *th = thinkercap.next; th && th != &thinkercap; th = th->next)
 	{
-		if (th->function == (actionf_p1)P_RemoveThinkerDelayed)
+		if (th->function != (actionf_p1)P_MobjThinker)
 			continue;
 		const mobj_t *b = (const mobj_t *)th;
 		if (!(b->flags & MF_BOSS))
@@ -333,8 +317,7 @@ const char *srb2_game_properties(void)
 	  "\"bit\": %d, \"bits\": 1, \"group\": \"Player\", \"writable\": false, "
 	  "\"description\": \"Revving a spindash (PF_STARTDASH, a bit of Player.Flags)\" }",
 	  (int)offsetof(struct game_state, pflags), __builtin_ctz((unsigned)PF_STARTDASH));
-	GS("Player.Dashmode", dashmode, "u32", "Player", "Metal Sonic's dash mode (player->dashmode): tics at running speed; at 105 (DASHMODE_THRESHOLD) dash mode starts, and it stops counting at 108 (DASHMODE_MAX)");
-	GS("Player.Normal Speed", normalspeed, "s32", "Player", "The player's top running speed (player->normalspeed), raised in dash mode; 16.16 fixed point");
+	GS("Player.Normal Speed", normalspeed, "s32", "Player", "The player's top running speed (player->normalspeed); 16.16 fixed point");
 	GS("Boss.Active", boss_active, "bool", "Boss", "A boss is in the level: the first object with MF_BOSS among the thinkers, as the SRB2 TAS build finds it; the rest of Boss is 0 when not");
 	GS("Boss.Health", boss_health, "s32", "Boss", "The boss's health (hits left)");
 	GS("Boss.Max Health", boss_max_health, "s32", "Boss", "The boss's health at the start (its type's spawnhealth)");
@@ -392,7 +375,7 @@ UINT64 chimera_state_digest(void)
 	MIX(gamestate);
 	MIX(gamemap);
 	const player_t *p = &players[consoleplayer];
-	MIX(p->rings);
+	MIX(p->health); /* 2.1: the rings, plus one */
 	MIX(p->score);
 	MIX(p->lives);
 	MIX(p->pflags);
@@ -405,9 +388,9 @@ UINT64 chimera_state_digest(void)
 	MIX(camera.aiming);
 	if (gamestate == GS_LEVEL)
 	{
-		for (thinker_t *th = thlist[THINK_MOBJ].next; th && th != &thlist[THINK_MOBJ]; th = th->next)
+		for (thinker_t *th = thinkercap.next; th && th != &thinkercap; th = th->next)
 		{
-			if (th->function == (actionf_p1)P_RemoveThinkerDelayed)
+			if (th->function != (actionf_p1)P_MobjThinker)
 				continue;
 			const mobj_t *mo = (const mobj_t *)th;
 			MIX(mo->x);

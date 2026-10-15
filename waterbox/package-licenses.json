@@ -1,40 +1,40 @@
 {
-  "package": "srb2",
+  "package": "srb2legacy",
   "effectiveTerms": "GPL-2.0",
   "commercialUse": "yes, under the GPL's terms",
-  "note": "The built core combines this repository's integration (GPL-2.0, as SRB2: the driver, the platform layer, the mixer, the patches) with Sonic Robo Blast 2 (GPL-2.0), compiled in from the submodule extern/SRB2 with zlib and libpng from its own libs/, libogg and libvorbis (BSD-3-Clause), Game_Music_Emu (LGPL-2.1-or-later), libopenmpt (BSD-3-Clause), the parts of libOPNMIDI the core's own MIDI player (platform/midi_fm.cpp, GPL-2.0) is built on - its MIDI sequencer, WOPN bank loader, XG bank and volume and frequency models (MIT), its chip interface (LGPL-2.1-or-later) and MAME's YM2612 (GPL-2.0-or-later); libOPNMIDI's own player, GPL-3.0-or-later, is not built - Mesa's GL/gl.h (MIT, waterbox/compat/GL) for the OpenGL renderer's declarations, glad 2.0.5's generated GL declarations (public domain, with the Khronos data under Apache-2.0) for the GPU bridge's guest half, and miniBox's guest kit (musl, MIT; emulibc and libco's backend, MIT/public domain) with GCC's libstdc++ (GPL-3.0 with the GCC Runtime Library Exception). The package carries none of the game's data: srb2.pk3, zones.pk3, characters.pk3 and music.pk3 are the user's firmware. Sonic the Hedgehog and related characters are trademarks of SEGA.",
+  "note": "The built core combines this repository's integration (GPL-2.0, as SRB2: the driver, the platform layer, the mixer, the patches) with SRB2 Legacy (GPL-2.0, srb2-preservation's fork of Sonic Robo Blast 2 2.1), compiled in from the submodule extern/SRB2 with zlib and libpng from its own libs/, libogg and libvorbis (BSD-3-Clause), Game_Music_Emu (LGPL-2.1-or-later), libopenmpt (BSD-3-Clause), the parts of libOPNMIDI the core's own MIDI player (platform/midi_fm.cpp, GPL-2.0) is built on - its MIDI sequencer, WOPN bank loader, XG bank and volume and frequency models (MIT), its chip interface (LGPL-2.1-or-later) and MAME's YM2612 (GPL-2.0-or-later); libOPNMIDI's own player, GPL-3.0-or-later, is not built - Mesa's GL/gl.h (MIT, waterbox/compat/GL) for the OpenGL renderer's declarations, glad 2.0.5's generated GL declarations (public domain, with the Khronos data under Apache-2.0) for the GPU bridge's guest half, and miniBox's guest kit (musl, MIT; emulibc and libco's backend, MIT/public domain) with GCC's libstdc++ (GPL-3.0 with the GCC Runtime Library Exception). The package carries none of the game's data: srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta and legacy.pk3 are the user's firmware. Sonic the Hedgehog and related characters are trademarks of SEGA.",
   "components": [
     {
-      "name": "chimera-core-srb2 (integration)",
+      "name": "chimera-core-srb2-legacy (integration)",
       "license": "GPL-2.0",
-      "url": "https://github.com/P-AS/chimera-core-srb2",
+      "url": "https://github.com/P-AS/chimera-core-srb2-legacy",
       "commit": "{selfCommit}",
       "file": "LICENSE",
-      "sourceUrl": "https://github.com/P-AS/chimera-core-srb2/archive/{commit}.tar.gz"
+      "sourceUrl": "https://github.com/P-AS/chimera-core-srb2-legacy/archive/{commit}.tar.gz"
     },
     {
-      "name": "Sonic Robo Blast 2",
+      "name": "SRB2 Legacy (Sonic Robo Blast 2)",
       "license": "GPL-2.0",
-      "url": "https://github.com/STJr/SRB2",
+      "url": "https://github.com/srb2-preservation/srb2-legacy",
       "commit": "{submodule:extern/SRB2}",
       "file": "extern/SRB2/LICENSE",
-      "sourceUrl": "https://github.com/STJr/SRB2/archive/{commit}.tar.gz"
+      "sourceUrl": "https://github.com/srb2-preservation/srb2-legacy/archive/{commit}.tar.gz"
     },
     {
-      "name": "zlib (SRB2's libs/zlib)",
+      "name": "zlib 1.2.6 (SRB2 Legacy's libs/zlib)",
       "license": "Zlib",
       "url": "https://zlib.net",
       "commit": "{submodule:extern/SRB2}",
-      "file": "extern/SRB2/libs/zlib/LICENSE",
-      "sourceUrl": "https://github.com/STJr/SRB2/archive/{commit}.tar.gz"
+      "file": "extern/SRB2/libs/zlib/README",
+      "sourceUrl": "https://github.com/srb2-preservation/srb2-legacy/archive/{commit}.tar.gz"
     },
     {
-      "name": "libpng (SRB2's libs/libpng-src)",
+      "name": "libpng 1.2.46 (SRB2 Legacy's libs/libpng-src)",
       "license": "Libpng",
       "url": "http://www.libpng.org",
       "commit": "{submodule:extern/SRB2}",
       "file": "extern/SRB2/libs/libpng-src/LICENSE",
-      "sourceUrl": "https://github.com/STJr/SRB2/archive/{commit}.tar.gz"
+      "sourceUrl": "https://github.com/srb2-preservation/srb2-legacy/archive/{commit}.tar.gz"
     },
     {
       "name": "libogg",

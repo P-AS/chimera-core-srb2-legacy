@@ -41,7 +41,7 @@ endif
 
 all: $(B)/run-native $(B)/run-wbx
 
-$(B)/srb2/%.o: $(SRB2)/%.c $(PATCH_STAMP) $(OPENMPT_STAMP) $(PNGCONF) $(B)/flags
+$(B)/srb2/%.o: $(SRB2)/%.c $(PATCH_STAMP) $(OPENMPT_STAMP) $(B)/flags
 	@mkdir -p $(dir $@)
 	gcc $(SRB2_CFLAGS) -c -o $@ $<
 
@@ -49,7 +49,7 @@ $(B)/zlib/%.o: $(LIBS)/zlib/%.c $(B)/flags
 	@mkdir -p $(dir $@)
 	gcc $(ZLIB_CFLAGS) -c -o $@ $<
 
-$(B)/png/%.o: $(LIBS)/libpng-src/%.c $(PNGCONF) $(B)/flags
+$(B)/png/%.o: $(LIBS)/libpng-src/%.c $(B)/flags
 	@mkdir -p $(dir $@)
 	gcc $(PNG_CFLAGS) -c -o $@ $<
 
@@ -85,7 +85,7 @@ $(B)/core/platform/midi_fm.o: platform/midi_fm.cpp platform/midi_fm.h $(OPNBANK)
 	@mkdir -p $(dir $@)
 	g++ $(MIDIFM_CORE_CXXFLAGS) -c -o $@ $<
 
-$(B)/core/%.o: %.c $(CORE_HDRS) $(PATCH_STAMP) $(OPENMPT_STAMP) $(PNGCONF) $(B)/flags
+$(B)/core/%.o: %.c $(CORE_HDRS) $(PATCH_STAMP) $(OPENMPT_STAMP) $(B)/flags
 	@mkdir -p $(dir $@)
 	gcc $(CORE_CFLAGS) -c -o $@ $<
 

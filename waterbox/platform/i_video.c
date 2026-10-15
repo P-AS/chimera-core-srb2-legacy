@@ -31,8 +31,9 @@
 #include "v_video.h"
 #include "console.h"
 #include "s_sound.h"
-#include "netcode/d_clisrv.h"
-#include "netcode/d_netcmd.h"
+#include "d_clisrv.h"
+#include "d_netcmd.h"
+#include "st_stuff.h"
 #include "hardware/hw_main.h"
 #include "hardware/hw_drv.h"
 #include "hardware/hw_shaders.h"
@@ -46,11 +47,12 @@ void *hwSym(const char *funcName, void *handle);
 const UINT32 *chimera_gl_frame(void);
 
 rendermode_t rendermode = render_soft;
-rendermode_t chosenrendermode = render_soft;
+/* the 8-bit screens only: no 16-bit colour */
+boolean highcolor = false;
 
 boolean allow_fullscreen = false;
 
-consvar_t cv_vidwait = CVAR_INIT ("vid_wait", "Off", CV_SAVE, CV_OnOff, NULL);
+consvar_t cv_vidwait = CVAR_INIT ("vid_wait", "Off", NULL, CV_SAVE, CV_OnOff, NULL);
 
 static RGBA_t g_palette[256];
 static INT32 g_mode_w = BASEVIDWIDTH, g_mode_h = BASEVIDHEIGHT;
@@ -82,9 +84,9 @@ void I_StartupGraphics(void)
 	CV_RegisterVar(&cv_vidwait);
 	keyboard_started = true;
 
-	/* as upstream's -renderer: chosen at the command line, so the start
-	 * keeps it whatever a configuration says (SCR_SetMode) */
-	chosenrendermode = rendermode = g_want_gl ? render_opengl : render_soft;
+	/* as upstream's -opengl/-software: chosen at the command line, so the
+	 * start keeps it whatever a configuration says (VID_CheckRenderer) */
+	rendermode = g_want_gl ? render_opengl : render_soft;
 	if (rendermode == render_opengl)
 	{
 		VID_StartupOpenGL();
@@ -92,7 +94,7 @@ void I_StartupGraphics(void)
 		{
 			fprintf(stderr, "chimera: WARNING: OpenGL did not start; drawing in software, "
 				"which plays differently: a movie made in OpenGL will not sync\n");
-			chosenrendermode = rendermode = render_soft;
+			rendermode = render_soft;
 		}
 	}
 
@@ -127,7 +129,6 @@ void VID_StartupOpenGL(void)
 	HWD.pfnClearBuffer = hwSym("ClearBuffer", NULL);
 	HWD.pfnSetTexture = hwSym("SetTexture", NULL);
 	HWD.pfnUpdateTexture = hwSym("UpdateTexture", NULL);
-	HWD.pfnDeleteTexture = hwSym("DeleteTexture", NULL);
 	HWD.pfnReadScreenTexture = hwSym("ReadScreenTexture", NULL);
 	HWD.pfnGClipRect = hwSym("GClipRect", NULL);
 	HWD.pfnClearMipMapCache = hwSym("ClearMipMapCache", NULL);
@@ -195,7 +196,7 @@ INT32 VID_SetMode(INT32 modenum)
 
 /* the software renderer's buffer: all NUMSCREENS screens, as upstream's
  * Impl_VideoSetupBuffer lays them out */
-boolean VID_CheckRenderer(void)
+void VID_CheckRenderer(void)
 {
 	/* the machine's renderer is the project's: a switch is refused */
 	if (setrenderneeded)
@@ -212,10 +213,10 @@ boolean VID_CheckRenderer(void)
 	SCR_SetDrawFuncs();
 	if (rendermode == render_opengl)
 		OglSdlSurface(vid.width, vid.height);
-	return false;
 }
 
 void VID_CheckGLLoaded(rendermode_t oldrender) { (void)oldrender; }
+void I_SetBorderlessWindow(void) {}
 
 UINT32 I_GetRefreshRate(void) { return TICRATE; }
 
@@ -226,14 +227,12 @@ void I_UpdateNoBlit(void) {}
 void I_FinishUpdate(void)
 {
 	SCR_CalculateFPS();
-	if (marathonmode)
-		SCR_DisplayMarathonInfo();
-	if (cv_closedcaptioning.value)
-		SCR_ClosedCaptions();
-	if (cv_ticrate.value)
-		SCR_DisplayTicRate();
+	SCR_DisplayTicRate();
 	if (cv_showping.value && netgame && consoleplayer != serverplayer)
 		SCR_DisplayLocalPing();
+	if (marathonmode)
+		SCR_DisplayMarathonInfo();
+	ST_MovieInfoDrawer();
 	if (rendermode == render_opengl)
 	{
 		// Final postprocess step of palette rendering, after everything else has been drawn.

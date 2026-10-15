@@ -1,9 +1,10 @@
 /* srb2-input.c - the controller: SRB2's own keyboard, and axes for what a key
  * cannot say exactly.
  *
- * The buttons are the game's controls in its default keyboard scheme (the
- * "FPS" one, gamecontroldefault[gcs_fps]: WASD, the arrows, Space, Shift...),
- * and pressing one is pressing its key: a key event goes to the engine
+ * The buttons are the game's controls, each on a key of the game's default
+ * keyboard (G_Controldefault: WASD, the arrows, Space, Shift...) or, where
+ * that has none or shares it, one of the core's choosing (Fire Normal, Center
+ * View, the weapon wheel, Custom 1-3), and pressing one is pressing its key: a key event goes to the engine
  * (D_PostEvent) when a button changes, so the menus, the title screen and the
  * game all read it as they read a keyboard, and the game builds its tic
  * command from the held keys with all its own logic (accelerative turning, the
@@ -32,7 +33,7 @@
  *   Aim                      the look pitch, as the command's aiming (angle >>
  *                            16) negated: positive looks down, as a stick's
  *                            Y; clipped as the game clips it; 0 leaves the
- *                            game's own look (patches/0004)
+ *                            game's own look (patches/0002)
  */
 #include <string.h>
 
@@ -48,43 +49,43 @@
 #include "srb2-input.h"
 
 static const struct srb2_button g_buttons[] = {
-	{ "Forward", GC_FORWARD, 'w' },
-	{ "Backward", GC_BACKWARD, 's' },
-	{ "Strafe Left", GC_STRAFELEFT, 'a' },
-	{ "Strafe Right", GC_STRAFERIGHT, 'd' },
-	{ "Turn Left", GC_TURNLEFT, KEY_LEFTARROW },
-	{ "Turn Right", GC_TURNRIGHT, KEY_RIGHTARROW },
-	{ "Look Up", GC_LOOKUP, KEY_UPARROW },
-	{ "Look Down", GC_LOOKDOWN, KEY_DOWNARROW },
-	{ "Jump", GC_JUMP, KEY_SPACE },
-	{ "Spin", GC_SPIN, KEY_LSHIFT },
+	{ "Forward", gc_forward, 'w' },
+	{ "Backward", gc_backward, 's' },
+	{ "Strafe Left", gc_strafeleft, 'a' },
+	{ "Strafe Right", gc_straferight, 'd' },
+	{ "Turn Left", gc_turnleft, KEY_LEFTARROW },
+	{ "Turn Right", gc_turnright, KEY_RIGHTARROW },
+	{ "Look Up", gc_lookup, KEY_UPARROW },
+	{ "Look Down", gc_lookdown, KEY_DOWNARROW },
+	{ "Jump", gc_jump, KEY_SPACE },
+	{ "Spin", gc_use, KEY_LSHIFT }, /* 2.1's "use" */
 	/* the ring-slinger controls (match, CTF; user-asked again 2026-10-11) */
-	{ "Fire", GC_FIRE, KEY_RCTRL },
-	{ "Fire Normal", GC_FIRENORMAL, KEY_RALT },
-	{ "Toss Flag", GC_TOSSFLAG, '\'' },
-	{ "Center View", GC_CENTERVIEW, KEY_LCTRL },
-	{ "Reset Camera", GC_CAMRESET, 'r' },
-	{ "Camera Toggle", GC_CAMTOGGLE, 'v' },
-	{ "Weapon Next", GC_WEAPONNEXT, KEY_MOUSEWHEELUP },
-	{ "Weapon Prev", GC_WEAPONPREV, KEY_MOUSEWHEELDOWN },
+	{ "Fire", gc_fire, KEY_RCTRL },
+	{ "Fire Normal", gc_firenormal, KEY_RALT },
+	{ "Toss Flag", gc_tossflag, '\'' },
+	{ "Center View", gc_centerview, KEY_LCTRL },
+	{ "Reset Camera", gc_camreset, 'r' },
+	{ "Camera Toggle", gc_camtoggle, 'v' },
+	{ "Weapon Next", gc_weaponnext, KEY_MOUSEWHEELUP },
+	{ "Weapon Prev", gc_weaponprev, KEY_MOUSEWHEELDOWN },
 	/* the weapon slots: left out, to keep the UI uncrowded (user-decided
 	 * 2026-10-11); Weapon Next and Prev reach them all
-	{ "Weapon 1", GC_WEPSLOT1, '1' },
-	{ "Weapon 2", GC_WEPSLOT2, '2' },
-	{ "Weapon 3", GC_WEPSLOT3, '3' },
-	{ "Weapon 4", GC_WEPSLOT4, '4' },
-	{ "Weapon 5", GC_WEPSLOT5, '5' },
-	{ "Weapon 6", GC_WEPSLOT6, '6' },
-	{ "Weapon 7", GC_WEPSLOT7, '7' },
+	{ "Weapon 1", gc_wepslot1, '1' },
+	{ "Weapon 2", gc_wepslot2, '2' },
+	{ "Weapon 3", gc_wepslot3, '3' },
+	{ "Weapon 4", gc_wepslot4, '4' },
+	{ "Weapon 5", gc_wepslot5, '5' },
+	{ "Weapon 6", gc_wepslot6, '6' },
+	{ "Weapon 7", gc_wepslot7, '7' },
 	*/
-	{ "Custom 1", GC_CUSTOM1, 'z' },
-	{ "Custom 2", GC_CUSTOM2, 'x' },
-	{ "Custom 3", GC_CUSTOM3, 'c' },
-	{ "Pause", GC_PAUSE, 'p' },
+	{ "Custom 1", gc_custom1, 'z' },
+	{ "Custom 2", gc_custom2, 'x' },
+	{ "Custom 3", gc_custom3, 'c' },
+	{ "Pause", gc_pause, 'p' },
 	/* the menus' own keys, a prompt's too (M_Responder: Enter or Space is yes,
 	 * Escape no) */
-	{ "Enter", GC_NULL, KEY_ENTER },
-	{ "Escape", GC_NULL, KEY_ESCAPE },
+	{ "Enter", gc_null, KEY_ENTER },
+	{ "Escape", gc_null, KEY_ESCAPE },
 };
 #define NBUTTONS ((int)(sizeof g_buttons / sizeof g_buttons[0]))
 
@@ -123,13 +124,14 @@ void srb2_input_set_axis(int i, int32_t value)
 	g_axis[i] = value;
 }
 
-/* the default keyboard scheme, whatever the configuration says */
+/* the default keyboard, whatever the configuration says: every binding
+ * cleared, the game's defaults, then each button's key its control's alone */
 void srb2_input_bind(void)
 {
-	G_CopyControls(gamecontrol, gamecontroldefault[gcs_fps], NULL, 0);
-	G_CopyControls(gamecontrolbis, gamecontrolbisdefault[gcs_fps], NULL, 0);
+	G_ClearAllControlKeys();
+	G_Controldefault();
 	for (int i = 0; i < NBUTTONS; i++)
-		if (g_buttons[i].control != GC_NULL)
+		if (g_buttons[i].control != gc_null)
 		{
 			gamecontrol[g_buttons[i].control][0] = g_buttons[i].key;
 			gamecontrol[g_buttons[i].control][1] = KEY_NULL;
@@ -149,7 +151,7 @@ void srb2_input_post(void)
 			if (release ? (g_down[i] && !g_held[i]) : (!g_down[i] && g_held[i]))
 			{
 				ev.type = release ? ev_keyup : ev_keydown;
-				ev.key = g_buttons[i].key;
+				ev.data1 = g_buttons[i].key;
 				D_PostEvent(&ev);
 				g_down[i] = g_held[i];
 			}
@@ -168,9 +170,9 @@ static int held(int control)
 void srb2_input_base(ticcmd_t *cmd)
 {
 	memset(cmd, 0, sizeof *cmd);
-	if (!held(GC_FORWARD) && !held(GC_BACKWARD))
+	if (!held(gc_forward) && !held(gc_backward))
 		cmd->forwardmove = (SINT8)g_axis[0];
-	if (!held(GC_STRAFELEFT) && !held(GC_STRAFERIGHT))
+	if (!held(gc_strafeleft) && !held(gc_straferight))
 		cmd->sidemove = (SINT8)g_axis[1];
 	/* the command's angle is counter-clockwise, its pitch up: negated, with
 	 * -32768 kept in range */

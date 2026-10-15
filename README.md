@@ -1,29 +1,32 @@
-# chimera-core-srb2
+# chimera-core-srb2-legacy
 
-[Sonic Robo Blast 2](https://srb2.org/) (Sonic Team Junior's 3D Sonic fangame, from Doom Legacy) as a
+[SRB2 Legacy](https://github.com/srb2-preservation/srb2-legacy) (srb2-preservation's updated fork of
+[Sonic Robo Blast 2](https://srb2.org/) 2.1.25, Sonic Team Junior's 3D Sonic fangame, from Doom Legacy) as a
 [Chimera](https://github.com/ToolAssisted-run/chimera) **game core** (`"kind": "game"`, see Chimera's
-`docs/game-cores.md`). It is an **official core**: on Chimera's roster (`official-cores.json`) since Chimera's
-9aff711 (2026-10-10), and listed in Chimera's README with the game cores. It is the first official core published
-outside the ToolAssisted-run organisation: its author, P-AS, writes and publishes it from this repository, as a
-third party. It needs no change to Chimera. See `docs/PLAN.md` for the milestones and decisions.
+`docs/game-cores.md`). It is an **unofficial third-party core**: its author, P-AS, writes and publishes it from this
+repository. It is a fork of the SRB2 (2.2) core, [chimera-core-srb2](https://github.com/P-AS/chimera-core-srb2), and
+keeps its shape: the platform layer, the mixer, the controller, the gate. It needs no change to Chimera. See
+`docs/PLAN.md` for the fork, the milestones and the decisions.
 
-The engine is upstream SRB2 (`extern/SRB2`, master, net-compatible with 2.2.15), compiled from source with a
-platform layer of the core's own (`waterbox/platform/`) in place of SDL: no window, no audio device (the core
-mixes the sound itself, in the machine), no network, no threads. The game's data - srb2.pk3, zones.pk3,
-characters.pk3, music.pk3 - is firmware: the core carries none of it.
+The engine is upstream SRB2 Legacy (`extern/SRB2`, the `SRB2_release_2.1.30` tag), compiled from source with a
+platform layer of the core's own (`waterbox/platform/`) in place of SDL: no window, no audio device (the core mixes
+the sound itself, in the machine), no network, no threads. The game's data - srb2.srb, zones.dta, player.dta,
+rings.dta, patch.dta, music.dta and legacy.pk3 - is firmware: the core carries none of it.
 
 ## Using it in Chimera
 
 Chimera ships no cores and downloads nothing. Download the core's package from this repository's
-[Releases](https://github.com/P-AS/chimera-core-srb2/releases) page (a rolling `dev` build, dated
+[Releases](https://github.com/P-AS/chimera-core-srb2-legacy/releases) page (a rolling `dev` build, dated
 `nightly-YYYY-MM-DD` builds), or build it, and put it in the `Cores` folder beside `Chimera.exe` (or the folder
 chosen in File > Core Manager > Change folder...).
 
-Each release has two packages, one per CPU: `srb2-<version>-x64.chimeraCore` and
-`srb2-<version>-arm64.chimeraCore`. **You most likely want the x64 one.** Take the arm64 one only if you know you
-are using an arm64 device. Put only one of them in the `Cores` folder: two packages of one core list it twice. The
-same file works on Linux and on Windows. None of the game's data is in the package: a project brings SRB2 2.2.15's
-srb2.pk3, zones.pk3, characters.pk3 and music.pk3 as firmware.
+Each release has two packages, one per CPU: `srb2legacy-<version>-x64.chimeraCore` and
+`srb2legacy-<version>-arm64.chimeraCore`. **You most likely want the x64 one.** Take the arm64 one only if you know
+you are using an arm64 device. Put only one of them in the `Cores` folder: two packages of one core list it twice.
+The same file works on Linux and on Windows. None of the game's data is in the package: a project brings SRB2
+Legacy 2.1.30's seven data files as firmware (as its `SRB2-Legacy-v2130-Full.zip` and
+[srb2-preservation's assets repository](https://codeberg.org/srb2-preservation/assets) have them; legacy.pk3
+included, which upstream calls optional).
 
 ## Building
 
@@ -47,19 +50,15 @@ nothing). `extern/openmpt` is shallow: `git submodule update --init` fetches onl
 
 ## Data for the gate
 
-`waterbox/fetch-data.sh [<folder>]` downloads STJr's own SRB2 2.2.15 release and takes out the four pk3s, checked
-against the declared firmware (default `build/srb2-2.2.15`); `run-gate.sh -d <folder>` runs on them. CI
-(`.github/workflows/chimera.yml`) does this, then the gate, the package and Chimera's contract tests, on x64 and
-on arm64, and publishes `dev` and nightly releases with both packages.
-
-Being on Chimera's roster, the newest nightly is also checked by Chimera's own CI: every run there downloads it
-(the x64 package) and runs Chimera's package tests on it. A nightly those tests refuse fails Chimera's CI until a
-fixed nightly is out.
+`waterbox/fetch-data.sh [<folder>]` takes the seven data files from srb2-preservation's assets repository on
+Codeberg (git lfs, at a pinned commit), checked against the declared firmware (default `build/srb2-legacy-data`);
+`run-gate.sh -d <folder>` runs on them. CI (`.github/workflows/chimera.yml`) does this, then the gate, the package
+and Chimera's contract tests, on x64 and on arm64, and publishes `dev` and nightly releases with both packages.
 
 ## The package
 
 ```
-waterbox/build-package.sh [-r <Chimera bundle or checkout>]   # build/package/srb2.chimeraCore, or into its Cores
+waterbox/build-package.sh [-r <Chimera bundle or checkout>]   # build/package/srb2legacy.chimeraCore, or into its Cores
 ```
 
 `-r <chimera>` writes the package into a Chimera source checkout's `build/Cores` (a bundle's `Cores`). The whole
@@ -69,7 +68,7 @@ coding agent.
 ## Running the native reference
 
 ```
-mkdir -p build/work && ln -s /usr/share/games/SRB2/*.pk3 build/work/
+mkdir -p build/work && ln -s /usr/share/games/srb2-legacy/* build/work/
 echo '{"warp": "1"}' > build/work/settings          # optional: start in Greenflower Zone Act 1
 build/native/run-native build/work -n 400 --ppm frame.ppm
 build/native/run-wbx build/guest/core.wbx build/work -n 400   # the same, in the sandbox
@@ -81,13 +80,14 @@ lines diff directly.
 
 ## The gate
 
-`./waterbox/run-gate.sh [-d <SRB2 data folder>] [-m <miniBox>]`: the legs, each saying what it compared, each
+`./waterbox/run-gate.sh [-d <SRB2 Legacy data folder>] [-m <miniBox>]`: the legs, each saying what it compared, each
 with teeth. `equivalence`: native == sandbox, step for step, on the intro and Greenflower Zone Act 1. `steps`:
 a step is a tic, a wipe's frames are lag steps, play is a tic a step. `savestates`: a save and load before
 every step, and a new host mid-wipe, change nothing. `declaration`: the package's controller is the core's. `settings`: each setting reaches the engine.
 `opengl`: with no GPU bridge the OpenGL renderer warns in the log and the run is the software renderer's. `engine`
 (with `-c`) also runs `opengl-hw` through the GPU bridge where the machine has a context: the character select
-drawn as in software, and the picture right again after a rewind and a reopen.
+drawn as in software, and the picture right again after a rewind and a reopen (within a few seam pixels: SRB2
+Legacy's renderer draws coplanar polygons in an order set by the driver's texture names).
 `properties`: the Game State domain, read by its property table, holds what Greenflower's movie did, the timers
 `tests/timers.lua` sets, a spindash's charge (`tests/spindash.txt`), and a boss `tests/boss.lua` spawns and hits.
 `input`: movies through the menus and in Greenflower,
@@ -100,22 +100,30 @@ The harnesses' `--wav FILE` writes a run's sound.
 
 ## Settings
 
-Declared in `waterbox/waterbox.config`, so Chimera shows them as the core's options; each is SRB2's own option,
-given to the engine at start: Play Style (default Manual), Camera Speed (1.0), Camera Distance (192), Camera Height (40), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is recommended for NiGHTS levels), Score/Time/Rings (Mania), Flip
-Camera with Gravity (Yes), Automatic Braking (On), Music Preference (Digital: the recorded songs; MIDI: the
-game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips, MAME's, as upstream's Windows
-builds play them - the sound's alone), Tutorial Prompt (Off), Unlock Record Attack/NiGHTS Mode/Marathon Run, Unlock All
-Characters, Unlock All Maps in Record Attack and NiGHTS Mode, Unlock All Secrets (each Off), Resolution (1280x800: SRB2's video modes, and 2560x1440 and 3840x2160, shown with square
-pixels; the game plays the same at every one), Renderer (software; opengl-hw: SRB2's OpenGL renderer on this
-machine's GPU through Chimera's GPU bridge - fast, its picture the driver's; where there is no bridge it draws in
-software, which plays differently, and the log warns; the renderer is part of the game, so a movie is its
-renderer's), OpenGL Shaders (On; the picture's alone), Start Map (empty: the intro and the title), Start Map Character (a skin name, e.g. knuckles; empty: Sonic).
+Declared in `waterbox/waterbox.config`, so Chimera shows them as the core's options; each is SRB2 Legacy's own option,
+given to the engine at start: Analog Control (Off: 2.1's useranalog), Camera Speed (1.0), Camera Distance (160),
+Camera Height (25), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is
+recommended for NiGHTS levels), Score/Time/Rings (Mania), Flip Camera with Gravity (Yes), Unlock Record Attack and
+NiGHTS Mode, Unlock All Maps in Record Attack and NiGHTS Mode, Unlock All Secrets (each Off), Music Preference
+(Digital: the recorded songs; MIDI: the game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips,
+MAME's - the sound's alone), Renderer (software; opengl-hw: SRB2's OpenGL renderer on this machine's GPU through
+Chimera's GPU bridge - fast, its picture the driver's; where there is no bridge it draws in software, which plays
+differently, and the log warns; the renderer is part of the game, so a movie is its renderer's), OpenGL Shaders (On;
+the picture's alone), Resolution (1280x800: SRB2's video modes, and 2560x1440 and 3840x2160, shown with square
+pixels; the game plays the same at every one), Start Map (empty: the intro and the title), Start Map Character (a
+skin name, e.g. knuckles; empty: Sonic).
+
+The SRB2 core's Play Style, Automatic Braking, Tutorial Prompt and Unlock All Characters are not here: 2.1 has no
+play styles but Analog Control, no automatic braking, no tutorial, and no locked characters; and SRB2 Legacy always
+offers Marathon Run.
 
 ## The controller
 
-SRB2's default keyboard as buttons (Forward, Jump, Spin... the menus' Enter and Escape, which answer a prompt too),
-pressed as keys, so menus and play work as on a keyboard (the ring-slinger controls too - Fire, Fire Normal, Toss Flag, Weapon Next/Prev - but not the number row's weapon slots); plus axes for exact values: Forward Move, Side Move, Turn, Aim. The
-harnesses take a movie as text, `--input FILE` with `FROM-TO: Button; Axis=value` lines (`waterbox/tests/`).
+SRB2 Legacy's keyboard as buttons (Forward, Jump, Spin - 2.1's "use" - ... the menus' Enter and Escape, which answer
+a prompt too), pressed as keys, so menus and play work as on a keyboard (the ring-slinger controls too - Fire, Fire
+Normal, Toss Flag, Weapon Next/Prev - but not the number row's weapon slots); plus axes for exact values: Forward
+Move, Side Move, Turn, Aim. The harnesses take a movie as text, `--input FILE` with `FROM-TO: Button; Axis=value`
+lines (`waterbox/tests/`).
 
 ## Game State and the TAS info script
 
@@ -126,26 +134,25 @@ every step; they are read-only. `Game.Tic`, `Game.Level Time`, `Game.State`, `Ga
 conveyor or a moving platform adds), `Player.Platform Momentum Z` (`mo->pmomz`: the moving floor's) and
 `Player.Speed` (16.16 fixed point: 65536 is one unit; speed is the game's own `player->speed`), `Player.Dash Speed`,
 `Player.Min Dash`, `Player.Max Dash` (the spindash's charge and its bounds, 16.16), `Player.Flags` (`pflags`) and
-`Player.Charging Spindash` (its `PF_STARTDASH` bit), `Player.Dashmode` and `Player.Normal Speed` (Metal Sonic's dash
-mode counter and the top speed it raises); `Boss.Active`, `Boss.Health`, `Boss.Max Health`, `Boss.Flashing` (the first
+`Player.Charging Spindash` (its `PF_STARTDASH` bit), `Player.Normal Speed` (the player's top running speed);
+`Boss.Active`, `Boss.Health`, `Boss.Max Health`, `Boss.Flashing` (the first
 `MF_BOSS` object, as the SRB2 TAS build finds the boss: its health, its type's starting health, and `MF2_FRET`); `Player.Angle` (2^32 a turn); `Timers.Speed Shoes`, `Timers.Invincibility`,
 `Timers.Space`, `Timers.Air` (tics left). Out of a level the player's fields are 0.
 
-`lua/tasinfo.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 project loaded. It shows
+`lua/tasinfo.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
 speed, the angle in hex and in degrees (each to 4 decimal places, on lines of their own), the position and the
-momentum, the conveyor and platform momentum, the spindash's revs, Metal Sonic's dash mode (and its speed at 108, as the
-SRB2 TAS build shows it), the four timers in tics and seconds, and while a boss is in the level its health (left /
+momentum, the conveyor and platform momentum, the spindash's revs, the four timers in tics and seconds, and while a boss is in the level its health (left /
 at the start) and whether it is flashing. SRB2
-has no discrete revs: a spindash charges 1.0 of speed a tic while Spin is held, from Min Dash to Max Dash (Sonic: 15
-to 70), so the script counts a rev a tic, as revs so far / revs to full charge. The conveyor and platform momentum,
-the revs, the dash mode and the timers are shown only while they are not 0.
+has no discrete revs: a spindash charges 1.0 of speed a tic while Spin is held, from Min Dash to Max Dash, so the
+script counts a rev a tic, as revs so far / revs to full charge. The conveyor and platform momentum, the revs and the
+timers are shown only while they are not 0.
 
 The harnesses' `--game-state FILE` writes every step's block, and the table beside it in `FILE.json`.
 
 ## Licence
 
-GPL-2.0, as SRB2 is (`LICENSE`). zlib and libpng are compiled from the copies in SRB2's `libs/`, under their
-own licences; libco (miniBox's `extern/libco`) is public domain; libogg and libvorbis (`extern/ogg`,
+GPL-2.0, as SRB2 and SRB2 Legacy are (`LICENSE`). zlib 1.2.6 and libpng 1.2.46 are compiled from the copies in
+SRB2 Legacy's `libs/`, under their own licences; libco (miniBox's `extern/libco`) is public domain; libogg and libvorbis (`extern/ogg`,
 `extern/vorbis`) are BSD-3-Clause; Game_Music_Emu (`extern/gme`) is LGPL-2.1-or-later (its Nuked YM2612 too); libopenmpt (`extern/openmpt`) is
 BSD-3-Clause. The MIDI player (`waterbox/platform/midi_fm.cpp`) is the core's own, GPL-2.0, because libOPNMIDI's
 player is GPL-3.0-or-later and cannot be part of a GPL-2.0 program; it is built on the parts of libOPNMIDI

@@ -11,46 +11,43 @@ GME := $(ROOT)/extern/gme/gme
 OPENMPT := $(ROOT)/extern/openmpt
 OPNMIDI := $(ROOT)/extern/opnmidi
 MB   ?= $(MINIBOX_DIR)
-# libpng's configuration header: its prebuilt one, copied beside the build
-PNGCONF_DIR := $(ROOT)/build/pngconf
-PNGCONF := $(PNGCONF_DIR)/pnglibconf.h
 
-# ---- SRB2, upstream (the submodule extern/SRB2): its engine - the game, the
+# ---- SRB2 Legacy, upstream (the submodule extern/SRB2, SRB2_release_2.1.30): its engine - the game, the
 # software renderer, Lua, the console and menus, the netcode a local game runs
 # through - less its platform layer (sdl/), which the core is instead
 # (platform/). The lists are upstream's own Sourcefiles, so an upstream bump
 # brings its new files without an edit here. Left out:
 #   comptime.c           the build's date and git state: platform/comptime.c
 #                        names the core's build instead, the same in both
-#   netcode/i_tcp.c      sockets: the machine has no network (dummy/i_net.c)
+#   i_tcp.c              sockets: the machine has no network (dummy/i_net.c)
 #   sdl/, dedicated/     upstream's platform layers
 # hardware/, the OpenGL renderer, is in (HWRENDER, as upstream's builds have
 # it), in both builds: the guest draws it on the machine's GPU through
 # Chimera's bridge (platform/ogl_chimera.c); the native reference has no GL and
 # draws in software, its software path the guest's. Its GL headers are
 # compat/GL/: Mesa's gl.h and the few glext.h names it uses.
-# Taken from upstream's dummy/ interface as it is: i_net.c (no network),
-# i_cdmus.c (no CD); the sound is the core's own (platform/i_sound.c); from sdl/,
+# Taken from upstream's dummy/ interface as it is: i_net.c (no network); the
+# sound is the core's own (platform/i_sound.c); from sdl/,
 # dosstr.c (strupr, strlwr). md5.c and apng.c are upstream's optional files,
 # in as its Linux build has them.
 srb2_list = $(addprefix $(SRB2)/$(1),$(filter %.c,$(shell cat $(SRB2)/$(1)Sourcefile)))
-SRB2_EXCLUDE := $(SRB2)/comptime.c $(SRB2)/netcode/i_tcp.c
+SRB2_EXCLUDE := $(SRB2)/comptime.c $(SRB2)/i_tcp.c
 SRB2_SRCS := $(filter-out $(SRB2_EXCLUDE), \
-	$(call srb2_list,) $(call srb2_list,blua/) $(call srb2_list,netcode/) $(call srb2_list,hardware/) \
-	$(SRB2)/md5.c $(SRB2)/apng.c $(SRB2)/sdl/dosstr.c $(SRB2)/dummy/i_net.c $(SRB2)/dummy/i_cdmus.c)
+	$(call srb2_list,) $(call srb2_list,blua/) $(call srb2_list,hardware/) \
+	$(SRB2)/md5.c $(SRB2)/apng.c $(SRB2)/sdl/dosstr.c $(SRB2)/dummy/i_net.c)
 # upstream's defines (src/CMakeLists.txt, a Linux x86-64 build): the OpenGL
-# renderer (HWRENDER; GL_NO_LOGFILE, patches/0007: its messages to the console,
+# renderer (HWRENDER; GL_NO_LOGFILE, patches/0005: its messages to the console,
 # not an ogllog.txt in the machine's files), no threads, no curl, no UPnP, no Mumble;
 # libopenmpt (HAVE_OPENMPT: s_sound.c's module handle and its filter setting,
 # the sound menu's OpenMPT section, as upstream's Linux builds have them);
 # zlib (the .pk3 files) and libpng (PNG graphics in them) from upstream's own
 # libs/. C23, with -fwrapv: the game relies on wrapping
 # signed arithmetic (gnu2x: the C23 draft, as GCC 13 names it - every later GCC too). NDEBUG, as upstream's release build and the guest have it.
-# MAXVIDWIDTH/HEIGHT 3840x2160 (patches/0005): the resolution setting's largest.
+# MAXVIDWIDTH/HEIGHT 3840x2160 (patches/0003): the resolution setting's largest.
 SRB2_DEFS := -DNDEBUG -DMAXVIDWIDTH=3840 -DMAXVIDHEIGHT=2160 -DUNIXCOMMON -DLINUX -DLINUX64 -D_LARGEFILE64_SOURCE -DHAVE_ZLIB -DHAVE_PNG -DHAVE_OPENMPT \
 	-DHWRENDER -DGL_NO_LOGFILE \
 	-DNOMUMBLE -DNOEXECINFO -DNOUPNP
-SRB2_INCS := -Iplatform -Icompat -I$(OGG)/include -I$(VORBIS)/include -I$(GME)/.. -I$(OPENMPT) -I$(SRB2) -I$(SRB2)/blua -I$(LIBS)/zlib -I$(LIBS)/libpng-src -I$(PNGCONF_DIR)
+SRB2_INCS := -Iplatform -Icompat -I$(OGG)/include -I$(VORBIS)/include -I$(GME)/.. -I$(OPENMPT) -I$(SRB2) -I$(SRB2)/blua -I$(LIBS)/zlib -I$(LIBS)/libpng-src
 # SRB2's objects alone: the OpenGL renderer's entry point Init is renamed,
 # as the core's own Init is the export Chimera calls (wbx-entry.c);
 # platform/ogl_chimera.c, which finds it by name, says the same
@@ -111,8 +108,9 @@ $(OPENMPT_STAMP): $(wildcard $(ROOT)/patches/openmpt/*.patch) apply-patches.sh
 # built: the MIDI sequencer (midiseq/, MIT, header-only, compiled into
 # midi_fm.cpp), the bank loader (wopn/, MIT), the frequency and volume models
 # (models/, MIT), the chip interface (chips/opn_chip_base, mame_opn2.cpp:
-# LGPL-2.1+) and MAME's YM2612 (chips/mame/, GPL-2.0+) - upstream's MIDI as
-# its Windows builds play it (SDL_mixer_X's OPNMIDI on MAME YM2612s). Its bank
+# LGPL-2.1+) and MAME's YM2612 (chips/mame/, GPL-2.0+) - MIDI as SRB2 2.2's
+# Windows builds play it (SDL_mixer_X's OPNMIDI on MAME YM2612s; SRB2
+# Legacy's own builds leave MIDI to the host's SDL_mixer). Its bank
 # is libOPNMIDI's XG bank (fm_banks/xg.wopn, MIT, the one SDL_mixer_X embeds),
 # made a C array at build time (build/opnbank/opn_bank.h).
 # ENABLE_END_SILENCE_SKIPPING as libOPNMIDI's CMake builds the sequencer (a
@@ -130,21 +128,25 @@ $(OPNBANK): $(OPNMIDI)/fm_banks/xg.wopn
 	python3 -c 'import sys; d = open(sys.argv[1], "rb").read(); print("static const unsigned char g_xg_wopn[%d] = {%s};" % (len(d), ",".join(str(b) for b in d)))' $< > $@.tmp
 	mv $@.tmp $@
 
-# ---- zlib (extern/SRB2/libs/zlib): the .pk3 files' deflate, and libpng's
-ZLIB_NAMES := adler32 compress crc32 deflate inffast inflate inftrees trees uncompr zutil
+# ---- zlib (extern/SRB2/libs/zlib, 1.2.6): the .pk3 files' deflate, and
+# libpng's; its gz* files too, which nothing calls, as its zutil.c names
+# gzflags (Z_HAVE_UNISTD_H, as its configure finds on any Unix: their read,
+# write and lseek)
+ZLIB_NAMES := adler32 compress crc32 deflate gzclose gzlib gzread gzwrite inffast inflate inftrees trees uncompr zutil
 ZLIB_SRCS := $(addprefix $(LIBS)/zlib/,$(addsuffix .c,$(ZLIB_NAMES)))
-ZLIB_CFLAGS_COMMON := -std=gnu11 -O2 -DNDEBUG -I$(LIBS)/zlib
+ZLIB_CFLAGS_COMMON := -std=gnu11 -O2 -DNDEBUG -DZ_HAVE_UNISTD_H -I$(LIBS)/zlib
 
-# ---- libpng (extern/SRB2/libs/libpng-src): its own prebuilt configuration,
-# no SIMD filters (plain C, the same everywhere)
+# ---- libpng (extern/SRB2/libs/libpng-src, 1.2.46): its own configuration,
+# no assembler (pnggccrd.c's MMX, pngvcrd.c's MSVC): plain C, the same
+# everywhere
 PNG_NAMES := png pngerror pngget pngmem pngpread pngread pngrio pngrtran pngrutil pngset pngtrans \
 	pngwio pngwrite pngwtran pngwutil
 PNG_SRCS := $(addprefix $(LIBS)/libpng-src/,$(addsuffix .c,$(PNG_NAMES)))
-PNG_CFLAGS_COMMON := -std=gnu11 -O2 -DNDEBUG -DPNG_INTEL_SSE_OPT=0 -DPNG_ARM_NEON_OPT=0 \
-	-DPNG_MIPS_MSA_OPT=0 -DPNG_POWERPC_VSX_OPT=0 -I$(LIBS)/libpng-src -I$(PNGCONF_DIR) -I$(LIBS)/zlib
+PNG_CFLAGS_COMMON := -std=gnu11 -O2 -DNDEBUG -DPNG_NO_ASSEMBLER_CODE -DPNG_NO_MMX_CODE \
+	-I$(LIBS)/libpng-src -I$(LIBS)/zlib
 
 # ---- the core: its platform layer (platform/) and the driver
-PLATFORM_NAMES := i_system i_video ogl_chimera gl_compat i_sound i_threads i_net files detmath comptime
+PLATFORM_NAMES := i_system i_video ogl_chimera gl_compat i_sound i_net files detmath comptime
 CORE_C_NAMES := $(addprefix platform/,$(PLATFORM_NAMES)) srb2-driver srb2-input wbx-entry
 # libco (miniBox's extern/libco, public domain): the engine's cothread, for
 # the CPU both builds run on
@@ -187,10 +189,6 @@ $(PATCH_STAMP): $(wildcard $(ROOT)/patches/*.patch) apply-patches.sh
 	sh apply-patches.sh
 	@mkdir -p $(dir $@)
 	@touch $@
-
-$(PNGCONF): $(LIBS)/libpng-src/scripts/pnglibconf.h.prebuilt
-	@mkdir -p $(dir $@)
-	cp $< $@
 
 # Every object depends on the flags it was built with: a change to them
 # rebuilds it.

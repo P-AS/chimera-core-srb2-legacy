@@ -1,8 +1,8 @@
 diff --git a/src/screen.h b/src/screen.h
-index 3ce593a52..fa27485a2 100644
+index 3e1fbc60..deb7d8af 100644
 --- a/src/screen.h
 +++ b/src/screen.h
-@@ -35,8 +35,13 @@
+@@ -39,8 +39,13 @@
  // we try to re-allocate a minimum of buffers for stability of the memory,
  // so all the small-enough tables based on screen size, are allocated once
  // and for all at the maximum size.

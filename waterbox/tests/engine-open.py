@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """engine-open.py - opens the package the way Chimera does, through its engine.
 
-usage: engine-open.py <libchimera.so> <srb2.chimeraCore> <data folder> [steps] [settings JSON] [--ppm FILE] [--gpu] [--table]
+usage: engine-open.py <libchimera.so> <srb2legacy.chimeraCore> <data folder> [steps] [settings JSON] [--ppm FILE] [--gpu] [--table]
 
-Chimera's engine (libchimera, a bundle's dll/) opens the package with the four
-pk3s as firmware and the settings as overrides - every check the frontend's
+Chimera's engine (libchimera, a bundle's dll/) opens the package with the
+declared data files as firmware and the settings as overrides - every check the frontend's
 session makes: the required exports, the declaration, Init - then steps it,
 pressing Enter every 50 steps (through the intro, the title, the menus, into a new game), and
 reports each failure the engine names. With --ppm, the last picture. With

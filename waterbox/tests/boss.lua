@@ -1,22 +1,19 @@
 -- boss.lua - the gate's properties leg: SRB2 Lua (an add-on the leg's
 -- autoexec.cfg loads) that puts a boss in Greenflower Zone Act 1, which has
 -- none, and hits it, so the Game State's Boss fields are known: an Egg Mobile
--- spawned ahead of the player (256 units east and north, 64 up, along its facing) at
--- leveltime 30, hit once by the player
--- at 40 (one health off, flashing until its pain state ends). And Metal Sonic's
--- dash mode counter, set after the game's think every tic from 20 to a value
--- that names the tic.
+-- spawned ahead of the player (256 units east and north, 64 up) at leveltime
+-- 30, hit once by the player at 40 (one health off, flashing until it is back
+-- in its spawn state: leveltime 162 here). 2.1's Lua has no P_SpawnMobjFromMobj: the offsets are added by
+-- hand.
 local boss
 addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if leveltime == 30 then
-			boss = P_SpawnMobjFromMobj(player.mo, 256*FRACUNIT, 256*FRACUNIT, 64*FRACUNIT, MT_EGGMOBILE)
+			local mo = player.mo
+			boss = P_SpawnMobj(mo.x + 256*FRACUNIT, mo.y + 256*FRACUNIT, mo.z + 64*FRACUNIT, MT_EGGMOBILE)
 		end
 		if leveltime == 40 and boss and boss.valid then
 			P_DamageMobj(boss, player.mo, player.mo)
-		end
-		if leveltime >= 20 then
-			player.dashmode = 2000 + leveltime
 		end
 	end
 end)
