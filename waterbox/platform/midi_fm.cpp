@@ -1,7 +1,7 @@
 /* midi_fm.cpp - MIDI on emulated YM2612s: the music mixer's MIDI player
- * (i_sound.c's MU_MID_EX).
+ * (i_sound.c's MU_MID).
  *
- * Upstream's Windows builds play MIDI with SDL_mixer_X's OPNMIDI: libOPNMIDI
+ * SRB2 2.2's Windows builds play MIDI with SDL_mixer_X's OPNMIDI: libOPNMIDI
  * on MAME's YM2612, six chips, with its XG bank. libOPNMIDI's player is
  * GPL-3.0-or-later and SRB2 is GPL-2.0 only, so the player here is the core's
  * own (GPL-2.0, as SRB2), built on the parts of libOPNMIDI (extern/opnmidi)

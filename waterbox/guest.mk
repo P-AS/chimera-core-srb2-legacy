@@ -89,7 +89,7 @@ $(LIBSTDCXX) $(EMULIBC) $(CXXGLUE):
 	@echo "  ninja -C $(MBUILD) libstdcxx-installed.stamp source/guest/emulibc.c.o source/guest/cxxglue.c.o" >&2
 	@false
 
-$(B)/srb2/%.o: $(SRB2)/%.c $(PATCH_STAMP) $(OPENMPT_STAMP) $(PNGCONF) $(B)/flags | $(LIBSTDCXX)
+$(B)/srb2/%.o: $(SRB2)/%.c $(PATCH_STAMP) $(OPENMPT_STAMP) $(B)/flags | $(LIBSTDCXX)
 	@mkdir -p $(dir $@)
 	$(CC) $(SRB2_CFLAGS) -c -o $@ $<
 
@@ -97,7 +97,7 @@ $(B)/zlib/%.o: $(LIBS)/zlib/%.c $(B)/flags | $(LIBSTDCXX)
 	@mkdir -p $(dir $@)
 	$(CC) $(ZLIB_CFLAGS) -c -o $@ $<
 
-$(B)/png/%.o: $(LIBS)/libpng-src/%.c $(PNGCONF) $(B)/flags | $(LIBSTDCXX)
+$(B)/png/%.o: $(LIBS)/libpng-src/%.c $(B)/flags | $(LIBSTDCXX)
 	@mkdir -p $(dir $@)
 	$(CC) $(PNG_CFLAGS) -c -o $@ $<
 
@@ -133,7 +133,7 @@ $(B)/core/platform/midi_fm.o: platform/midi_fm.cpp platform/midi_fm.h $(OPNBANK)
 	@mkdir -p $(dir $@)
 	$(CXX) $(MIDIFM_CORE_CXXFLAGS) -c -o $@ $<
 
-$(B)/core/%.o: %.c $(CORE_HDRS) $(PATCH_STAMP) $(OPENMPT_STAMP) $(PNGCONF) $(B)/flags | $(LIBSTDCXX)
+$(B)/core/%.o: %.c $(CORE_HDRS) $(PATCH_STAMP) $(OPENMPT_STAMP) $(B)/flags | $(LIBSTDCXX)
 	@mkdir -p $(dir $@)
 	$(CC) $(GL_INCS) $(CORE_CFLAGS) -c -o $@ $<
 

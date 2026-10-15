@@ -1,23 +1,23 @@
-# AGENTS.md - SRB2 core for Chimera
+# AGENTS.md - SRB2 Legacy core for Chimera
 
-This repository builds Sonic Robo Blast 2 (Sonic Team Junior's 3D Sonic
-fangame) as a GAME core (one game engine built as a core, not an emulator)
-for Chimera (https://github.com/ToolAssisted-run/chimera), a frontend for
-tool-assisted speedruns. It is an official core, on Chimera's roster, but
-published outside the ToolAssisted-run organisation by its author
-(https://github.com/P-AS/chimera-core-srb2): the Chimera project does not
-maintain it, and nothing here may depend on a change to Chimera. Chimera's CI
-tests this repository's newest nightly, so a nightly must pass Chimera's
-package tests. It produces
-one file, `srb2.chimeraCore`: the engine as a sandboxed guest (`core.wbx`)
-and its declarations. The game's data (srb2.pk3, zones.pk3, characters.pk3,
-music.pk3) is never in the repository or the package: it is the user's
-firmware.
+This repository builds SRB2 Legacy (srb2-preservation's updated fork of Sonic
+Robo Blast 2 2.1.25, Sonic Team Junior's 3D Sonic fangame) as a GAME core
+(one game engine built as a core, not an emulator) for Chimera
+(https://github.com/ToolAssisted-run/chimera), a frontend for tool-assisted
+speedruns. It is an unofficial third-party core, published by its author
+(https://github.com/P-AS/chimera-core-srb2-legacy), and a fork of the SRB2
+(2.2) core (https://github.com/P-AS/chimera-core-srb2): the Chimera project
+does not maintain it, and nothing here may depend on a change to Chimera. It
+produces one file, `srb2legacy.chimeraCore`: the engine as a sandboxed guest
+(`core.wbx`) and its declarations. The game's data (srb2.srb, zones.dta,
+player.dta, rings.dta, patch.dta, music.dta, legacy.pk3) is never in the
+repository or the package: it is the user's firmware.
 
 ## Layout
 
-- `extern/SRB2`: upstream SRB2 (master, net-compatible with 2.2.15), a
-  submodule. Never edited in place. `extern/ogg`, `extern/vorbis`,
+- `extern/SRB2`: upstream SRB2 Legacy
+  (https://github.com/srb2-preservation/srb2-legacy, tag
+  `SRB2_release_2.1.30`), a submodule. Never edited in place. `extern/ogg`, `extern/vorbis`,
   `extern/gme`, `extern/openmpt` (shallow), `extern/opnmidi`: library
   submodules.
 - `patches/`: the numbered patches for `extern/SRB2`; `patches/openmpt/`: the
@@ -34,8 +34,9 @@ firmware.
   here must leave register x18 alone (`-ffixed-x18` in `guest.mk`): Windows keeps the TEB there and macOS clears it, so code
   using it ties the package to Linux. It also lists what the guest kit (musl,
   libstdc++, libgcc) still does with x18, without failing on it.
-- `waterbox/fetch-data.sh`: downloads STJr's 2.2.15 release and takes out the
-  four pk3s, checked (the gate's data where none is installed).
+- `waterbox/fetch-data.sh`: takes the seven data files from
+  srb2-preservation's assets repository on Codeberg (git lfs, a pinned
+  commit), checked (the gate's data where none is installed).
 - `waterbox/build-package.sh`: builds the package. `run-gate.sh`: the gate.
 - `waterbox/platform/midi_fm.cpp`: the MIDI player (Music Preference MIDI),
   the core's own, on libOPNMIDI's sequencer, bank, models and MAME YM2612.
@@ -62,7 +63,7 @@ Linux only (CI: `ubuntu-latest`). `<chimera>` is a Chimera checkout and
 
 ```
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl
+sudo apt-get install -y --no-install-recommends meson ninja-build build-essential cmake pkg-config python3 mono-complete xvfb libgl1-mesa-dev libegl-dev libx11-dev libxext-dev libasound2-dev python3-pip curl lua5.4 git-lfs
 
 git submodule update --init --recursive
 git clone --recursive https://github.com/ToolAssisted-run/chimera.git <chimera>
@@ -97,18 +98,18 @@ From the repository root, in this order:
 ```
 make -C waterbox -f native.mk -j"$(nproc)"  # build/native/run-native, run-wbx
 make -C waterbox -f guest.mk -j"$(nproc)"   # build/guest/core.wbx
-./waterbox/build-package.sh -r <chimera>    # <chimera>/build/Cores/srb2.chimeraCore
+./waterbox/build-package.sh -r <chimera>    # <chimera>/build/Cores/srb2legacy.chimeraCore
 ```
 
 The makefiles apply the patches on the first build. `build-package.sh`
 builds the guest itself; the gate does not build anything but the package
 for its engine leg, so build both flavours before it.
 
-`build-package.sh -r <chimera>` writes `<chimera>/build/Cores/srb2.chimeraCore`
-(for a Chimera bundle, a folder with `Chimera.exe`: its `Cores`) and clears
-the compiled-core cache for this package. `-o <dir>` writes
-`<dir>/srb2.chimeraCore`. With neither the package is
-`build/package/srb2.chimeraCore`.
+`build-package.sh -r <chimera>` writes
+`<chimera>/build/Cores/srb2legacy.chimeraCore` (for a Chimera bundle, a folder
+with `Chimera.exe`: its `Cores`) and clears the compiled-core cache for this
+package. `-o <dir>` writes `<dir>/srb2legacy.chimeraCore`. With neither the
+package is `build/package/srb2legacy.chimeraCore`.
 
 A hand-built package stamps its version `<commit>+local` (`-dirty` when the
 tree has changes) and is for testing. CI stamps the commit through
@@ -121,20 +122,20 @@ folder. In a source checkout that is `<chimera>/build/Cores/`, where
 `build-package.sh -r <chimera>` writes. In a release bundle it is the `Cores`
 folder beside `Chimera.exe`, or the one chosen in File > Core Manager >
 Change folder... File > Core Manager lists the folder; Refresh List rescans
-it. The same package works on Linux and on Windows. A project brings the four
-pk3s as firmware.
+it. The same package works on Linux and on Windows. A project brings the
+seven data files as firmware.
 
 ## Test before you commit
 
 The gate must end with `gate: all legs pass` (it exits non-zero otherwise).
-It needs SRB2 2.2.15's data; `./waterbox/fetch-data.sh` puts it in
-`build/srb2-2.2.15` (network access, once):
+It needs SRB2 Legacy 2.1.30's data; `./waterbox/fetch-data.sh` puts it in
+`build/srb2-legacy-data` (network access and git-lfs, once):
 
 ```
-./waterbox/run-gate.sh -d build/srb2-2.2.15 -c <chimera>/build
+./waterbox/run-gate.sh -d build/srb2-legacy-data -c <chimera>/build
 ```
 
-`-d` defaults to `/usr/share/games/SRB2`. `-c` (a Chimera checkout's
+`-d` defaults to `/usr/share/games/srb2-legacy`. `-c` (a Chimera checkout's
 installed `build/`, or a bundle) adds the engine leg: the package through
 Chimera's `libchimera`, and `opengl-hw` through its GPU bridge where the
 machine gives a GL context (otherwise a SKIP line, not a failure).
@@ -158,8 +159,8 @@ CHIMERA_CORES_DIR=<chimera>/build/Cores dotnet test source/gui/Chimera.Tests.Cli
   `apply-patches.sh openmpt` for libopenmpt). Never commit inside a
   submodule. The script takes a series as a whole: a pristine tree gets all
   of it, a fully patched tree is left alone, anything else is refused with
-  the command to reset the tree. Keep the patches small hooks: upstream moves
-  (2.2.16), and patch 0003 drops then.
+  the command to reset the tree. Keep the patches small hooks: upstream
+  moves, and a bump of the tag should need only a rebase of them.
 - `build-package.sh` refuses a package whose `default_keybinds.json` and
   declared buttons disagree, or whose button letters, system name or axis
   headers are missing: change `waterbox.config` and the keybinds together.
@@ -180,8 +181,8 @@ CHIMERA_CORES_DIR=<chimera>/build/Cores dotnet test source/gui/Chimera.Tests.Cli
   (`src/opnmidi*.cpp`, `include/opnmidi.h`) is GPL-3.0-or-later and SRB2 is
   GPL-2.0 only: never build it, include it, or copy from it into the core.
 - Never commit the game's data or any other game file. `build/` is ignored by
-  git. Never add network access to the core (patch 0002 keeps SRB2's curl
-  out).
+  git. Never add network access to the core (no curl is built, the machine
+  has no sockets: `platform/i_net.c`).
 - Shell scripts stay executable (git mode 100755): `waterbox/*.sh`.
 - Documentation prose is plain ASCII.
 - Commit messages: the subject states what is now true, often after a topic

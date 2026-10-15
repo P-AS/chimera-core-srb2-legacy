@@ -1,8 +1,8 @@
 diff --git a/src/hardware/hw_drv.h b/src/hardware/hw_drv.h
-index a5fdc00a4..f0f184efc 100644
+index f34a0959..837c2135 100644
 --- a/src/hardware/hw_drv.h
 +++ b/src/hardware/hw_drv.h
-@@ -75,6 +75,13 @@ EXPORT void HWRAPI(UpdateLightTable)(UINT32 id, RGBA_t *hw_lighttable);
+@@ -85,6 +85,13 @@ EXPORT void HWRAPI(UpdateLightTable)(UINT32 id, RGBA_t *hw_lighttable);
  EXPORT void HWRAPI(ClearLightTables)(void);
  EXPORT void HWRAPI(SetScreenPalette)(RGBA_t *palette);
  
@@ -16,7 +16,7 @@ index a5fdc00a4..f0f184efc 100644
  // ==========================================================================
  //                                      HWR DRIVER OBJECT, FOR CLIENT PROGRAM
  // ==========================================================================
-@@ -129,6 +136,8 @@ struct hwdriver_s
+@@ -138,6 +145,8 @@ struct hwdriver_s
  	UpdateLightTable    pfnUpdateLightTable;
  	ClearLightTables    pfnClearLightTables;
  	SetScreenPalette    pfnSetScreenPalette;
@@ -26,11 +26,11 @@ index a5fdc00a4..f0f184efc 100644
  
  extern struct hwdriver_s hwdriver;
 diff --git a/src/hardware/hw_main.c b/src/hardware/hw_main.c
-index a36b3a696..75054ec4d 100644
+index 5ab37367..f2a85b6d 100644
 --- a/src/hardware/hw_main.c
 +++ b/src/hardware/hw_main.c
-@@ -5857,6 +5857,68 @@ void HWR_Switch(void)
- 	}
+@@ -6211,6 +6211,67 @@ void HWR_Switch(void)
+ 	HWD.pfnSetSpecialState(HWD_SET_TEXTUREANISOTROPICMODE, cv_glanisotropicmode.value);
  }
  
 +// --------------------------------------------------------------------------
@@ -71,7 +71,7 @@ index a36b3a696..75054ec4d 100644
 +	for (i = 0; i < NUMSPRITES; i++)
 +		if (md2_models[i].model)
 +			HWR_ForgetModelVBOs(md2_models[i].model);
-+	for (i = 0; i < md2_numplayermodels; i++)
++	for (i = 0; i < MAXSKINS; i++)
 +		if (md2_playermodels[i].model)
 +			HWR_ForgetModelVBOs(md2_playermodels[i].model);
 +}
@@ -90,19 +90,18 @@ index a36b3a696..75054ec4d 100644
 +	for (i = 0; i < NUMSPRITES; i++)
 +		if (md2_models[i].model)
 +			HWD.pfnCreateModelVBOs(md2_models[i].model);
-+	for (i = 0; i < md2_numplayermodels; i++)
++	for (i = 0; i < MAXSKINS; i++)
 +		if (md2_playermodels[i].model)
 +			HWD.pfnCreateModelVBOs(md2_playermodels[i].model);
 +}
-+
+ 
  // --------------------------------------------------------------------------
  // Free resources allocated by the hardware renderer
- // --------------------------------------------------------------------------
 diff --git a/src/hardware/hw_main.h b/src/hardware/hw_main.h
-index 2277c32f3..9fda14255 100644
+index d1d69f8c..979bcc0e 100644
 --- a/src/hardware/hw_main.h
 +++ b/src/hardware/hw_main.h
-@@ -25,6 +25,8 @@
+@@ -24,6 +24,8 @@
  // Startup & Shutdown the hardware mode renderer
  void HWR_Startup(void);
  void HWR_Switch(void);
@@ -112,12 +111,12 @@ index 2277c32f3..9fda14255 100644
  
  void HWR_drawAMline(const fline_t *fl, INT32 color);
 diff --git a/src/hardware/r_opengl/r_opengl.c b/src/hardware/r_opengl/r_opengl.c
-index a03ae6cc6..8de326773 100644
+index 6fb94221..d5589516 100644
 --- a/src/hardware/r_opengl/r_opengl.c
 +++ b/src/hardware/r_opengl/r_opengl.c
-@@ -3306,4 +3306,64 @@ EXPORT void HWRAPI(SetScreenPalette)(RGBA_t *palette)
- 	}
+@@ -3231,5 +3231,63 @@ EXPORT void HWRAPI(SetScreenPalette)(RGBA_t *palette)
  }
+ 
  
 +// -----------------+
 +// ContextLost      : The context is gone: every GL name held here names
@@ -129,15 +128,14 @@ index a03ae6cc6..8de326773 100644
 +{
 +	INT32 i;
 +
-+	while (TexCacheHead)
++	// the mipmaps are the hardware renderer's: only the list is the driver's
++	while (gl_cachehead)
 +	{
-+		FTextureInfo *pTexInfo = TexCacheHead;
-+		if (pTexInfo->texture)
-+			pTexInfo->texture->downloaded = 0;
-+		TexCacheHead = pTexInfo->next;
-+		free(pTexInfo);
++		FTextureInfo *pTexInfo = gl_cachehead;
++		pTexInfo->downloaded = 0;
++		gl_cachehead = pTexInfo->nextmipmap;
 +	}
-+	TexCacheTail = TexCacheHead = NULL;
++	gl_cachetail = gl_cachehead = NULL;
 +	tex_downloaded = 0;
 +	NOTEXTURE_NUM = 0;
 +
@@ -178,5 +176,5 @@ index a03ae6cc6..8de326773 100644
 +		Shader_CompileProgram(&gl_fallback_shader, -1);
 +#endif
 +}
-+
+ 
  #endif //HWRENDER

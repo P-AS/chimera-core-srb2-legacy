@@ -459,6 +459,10 @@ static int fixed_cap(GLenum cap, int on)
 }
 
 static void APIENTRY c_Enable(GLenum cap) { if (!fixed_cap(cap, 1)) glEnable(cap); }
+/* fixed-function fog: SRB2 Legacy's renderer loads glFogf and glFogfv and only
+ * ever disables GL_FOG (its fog is its shaders'), so there is none to keep */
+static void APIENTRY c_Fogf(GLenum pname, GLfloat param) { (void)pname; (void)param; }
+static void APIENTRY c_Fogfv(GLenum pname, const GLfloat *params) { (void)pname; (void)params; }
 static void APIENTRY c_Disable(GLenum cap) { if (!fixed_cap(cap, 0)) glDisable(cap); }
 
 static void APIENTRY c_AlphaFunc(GLenum func, GLclampf ref)
@@ -1477,6 +1481,8 @@ static const struct proc g_procs[] = {
 	{ "glEnable", (void *)c_Enable },
 	{ "glDisable", (void *)c_Disable },
 	{ "glAlphaFunc", (void *)c_AlphaFunc },
+	{ "glFogf", (void *)c_Fogf },
+	{ "glFogfv", (void *)c_Fogfv },
 	{ "glTexEnvi", (void *)c_TexEnvi },
 	{ "glShadeModel", (void *)c_ShadeModel },
 	{ "glLightfv", (void *)c_Lightfv },

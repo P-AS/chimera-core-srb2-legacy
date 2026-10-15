@@ -1,10 +1,12 @@
 #!/bin/sh
 # run-gate.sh - the gate: every leg says what it compared.
 #
-# usage: waterbox/run-gate.sh [-d <SRB2 data folder>] [-m <miniBox checkout>] [-c <Chimera bundle>]
-#   -d   the folder holding srb2.pk3, zones.pk3, characters.pk3 and music.pk3
-#        (2.2.15's); default /usr/share/games/SRB2. The data is never the
-#        core's to carry: the gate links it into build/gate/.
+# usage: waterbox/run-gate.sh [-d <SRB2 Legacy data folder>] [-m <miniBox checkout>] [-c <Chimera bundle>]
+#   -d   the folder holding the declared firmware - srb2.srb, zones.dta,
+#        player.dta, rings.dta, patch.dta, music.dta and legacy.pk3 (SRB2
+#        Legacy 2.1.30's; waterbox/fetch-data.sh makes one); default
+#        /usr/share/games/srb2-legacy. The data is never the core's to carry:
+#        the gate links it into build/gate/.
 #   -m   miniBox (default $MINIBOX_DIR): the sandbox legs run core.wbx through
 #        its host (build/native/run-wbx)
 #   -c   a Chimera bundle (the folder with Chimera.exe), or a Chimera checkout's
@@ -41,13 +43,13 @@
 #                with tests/timers.lua loaded the speed shoes, invincibility,
 #                air and space timers and the conveyor and platform momenta are
 #                what it set; on tests/spindash.txt the spindash charges from Min
-#                Dash a tic at a time while Spin is held (Charging Spindash, a
+#                Dash (after 2.1's 1.0 on the first tic) a tic at a time while
+#                Spin is held (Charging Spindash, a
 #                bit of Player.Flags) and launches at its charge; with
 #                tests/boss.lua loaded an Egg Mobile it spawns and hits reads
-#                full health, then one less and flashing until its pain state
-#                ends (the first MF_BOSS thinker, as the SRB2 TAS build finds
-#                the boss), and Metal Sonic's dash mode counter is what it set;
-#                every step's
+#                full health, then one less and flashing until it is back in
+#                its spawn state (the first MF_BOSS thinker, as the SRB2 TAS build finds
+#                the boss); every step's
 #                block the same native, sandboxed and rerecorded. Its teeth -
 #                the table with two fields swapped (angle and speed; air and
 #                space; dash speed and max dash; boss health and max health)
@@ -80,12 +82,11 @@
 #                teeth - a declaration with two buttons swapped does not pass
 #   settings     the declared settings reach the engine as its options: with no
 #                setting given, and with every declared default given, the
-#                engine plays Manual (directionchar Movement, configanalog
-#                Off), cam_speed 1.0, cam_dist 192, cam_height 40, fov 90, timerres Mania, flipcam Yes, autobrake On, musicpref
-#                Digital, tutorialprompt Off, nothing unlocked, Sonic; each other
-#                value of each setting is the engine's option (read back with
-#                run-native --print-cvar). Its teeth - another value is not the
-#                default's
+#                engine plays useranalog Off, cam_speed 1.0, cam_dist 160,
+#                cam_height 25, fov 90, timerres Mania, flipcam Yes, musicpref
+#                Digital, nothing unlocked, Sonic; each other value of each
+#                setting is the engine's option (read back with run-native
+#                --print-cvar). Its teeth - another value is not the default's
 #   resolution   the resolution setting is the picture's alone: Greenflower's
 #                movie at 320x200, 1280x800, 1920x1080 and 3840x2160, native and
 #                sandboxed, plays one game (the state digest, every step) and
@@ -106,15 +107,17 @@
 #                context, opengl-hw through the bridge draws the character
 #                select as the software renderer does (flat fills, text, art),
 #                and a rewind and a reopen make the renderer again and draw the
-#                straight run (tests/engine-gpu-states.py, whose teeth - the
-#                core built without the rebuild - were watched failing)
+#                straight run, within a few seam pixels (SRB2 Legacy batches
+#                polygons by the driver's texture names: see
+#                tests/engine-gpu-states.py, whose teeth - the core built
+#                without the rebuild - were watched failing)
 #   time         the machine's clock is its own: a 300 ms host stall mid-run
 #                changes nothing, native and sandbox; its teeth - on the host's
 #                clock the same stall changes the run
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/.." && pwd)"
-data=/usr/share/games/SRB2
+data=/usr/share/games/srb2-legacy
 mb="${MINIBOX_DIR:-}"
 bundle=""
 while getopts d:m:c: o; do
@@ -139,12 +142,14 @@ for f in "$native" "$wbxhost"; do
 done
 [ -f "$core" ] || { echo "build the core first: make -C waterbox -f guest.mk MINIBOX_DIR=<miniBox>" >&2; exit 1; }
 
-# a work folder per content: the data linked in, and its settings
+# a work folder per content: the data linked in (the firmware the package
+# declares, by name), and its settings
+firmware="$(python3 -c 'import json,sys; print(" ".join(f["name"] for f in json.load(open(sys.argv[1]))["firmware"]))' "$here/waterbox.config")"
 content() {
 	dir="$root/build/gate/$1"
 	mkdir -p "$dir"
-	for f in srb2.pk3 zones.pk3 characters.pk3 music.pk3; do
-		[ -f "$data/$f" ] || { echo "no $f in $data (-d names the SRB2 data folder)" >&2; exit 1; }
+	for f in $firmware; do
+		[ -f "$data/$f" ] || { echo "no $f in $data (-d names the SRB2 Legacy data folder)" >&2; exit 1; }
 		ln -sf "$data/$f" "$dir/$f"
 	done
 	printf '%s\n' "$2" > "$dir/settings"
@@ -274,9 +279,9 @@ box props -n 260 -p 0 --input "$tests/gfz1-run.txt" --game-state "$g/props-timer
 nat gfz1 -n 160 -p 0 --input "$tests/spindash.txt" --game-state "$g/props-spindash-native.bin" >/dev/null
 box gfz1 -n 160 -p 0 --input "$tests/spindash.txt" --game-state "$g/props-spindash-sandbox.bin" >/dev/null
 box gfz1 -n 160 -p 0 --input "$tests/spindash.txt" --rerecord --game-state "$g/props-spindash-rerecord.bin" >/dev/null
-nat boss -n 200 -p 0 --game-state "$g/props-boss-native.bin" >/dev/null
-box boss -n 200 -p 0 --game-state "$g/props-boss-sandbox.bin" >/dev/null
-box boss -n 200 -p 0 --rerecord --game-state "$g/props-boss-rerecord.bin" >/dev/null
+nat boss -n 260 -p 0 --game-state "$g/props-boss-native.bin" >/dev/null
+box boss -n 260 -p 0 --game-state "$g/props-boss-sandbox.bin" >/dev/null
+box boss -n 260 -p 0 --rerecord --game-state "$g/props-boss-rerecord.bin" >/dev/null
 same() { cmp -s "$1" "$2" && cmp -s "$1.json" "$2.json"; }
 for kind in movie timers spindash boss; do
 	r="$(python3 "$tests/check-properties.py" "$g/props-$kind-native.bin" "$kind" 2>&1 || true)"
@@ -407,26 +412,25 @@ python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); b=c["input"]["butto
 content settings '{"warp": "1"}'
 cvars() {
 	printf '%s\n' "$1" > "$root/build/gate/settings/settings"
-	"$native" "$root/build/gate/settings" -n 5 -p 0 --print-cvar directionchar --print-cvar configanalog \
-		--print-cvar cam_speed --print-cvar cam_dist --print-cvar cam_height --print-cvar fov --print-cvar timerres --print-cvar flipcam --print-cvar autobrake --print-cvar musicpref --print-cvar tutorialprompt 2>/dev/null \
+	"$native" "$root/build/gate/settings" -n 5 -p 0 --print-cvar useranalog \
+		--print-cvar cam_speed --print-cvar cam_dist --print-cvar cam_height --print-cvar fov --print-cvar timerres --print-cvar flipcam --print-cvar musicpref 2>/dev/null \
 		| grep '^cvar' | tr '\n' ' '
 }
-want="cvar directionchar Movement cvar configanalog Off cvar cam_speed 1.00000 cvar cam_dist 192.00000 cvar cam_height 40.00000 cvar fov 90.00000 cvar timerres Mania cvar flipcam Yes cvar autobrake On cvar musicpref Digital cvar tutorialprompt Off "
+want="cvar useranalog Off cvar cam_speed 1.00000 cvar cam_dist 160.00000 cvar cam_height 25.00000 cvar fov 90.00000 cvar timerres Mania cvar flipcam Yes cvar musicpref Digital "
 none="$(cvars '{"warp": "1"}')"
 defaults="$(python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); d={s["name"]:s["default"] for s in c["settings"]}; d["warp"]="1"; print(json.dumps(d))' "$decl")"
 explicit="$(cvars "$defaults")"
 if [ "$none" = "$want" ] && [ "$explicit" = "$want" ]; then
-	pass "settings: the defaults, absent or given, are Manual, cam_speed 1.0, cam_dist 192, cam_height 40, fov 90, timerres Mania, flipcam Yes, autobrake On, musicpref Digital"
+	pass "settings: the defaults, absent or given, are useranalog Off, cam_speed 1.0, cam_dist 160, cam_height 25, fov 90, timerres Mania, flipcam Yes, musicpref Digital"
 else
 	bad "settings: the defaults are not what they should be: absent '$none', given '$explicit', want '$want'"
 fi
 ok=1
-for v in "playStyle Strafe directionchar Camera configanalog Off" "playStyle Automatic directionchar Movement configanalog On" \
-	"playStyle 'Old Analog' directionchar Camera configanalog On" "cameraSpeed 0.3 cam_speed 0.30000" "cameraSpeed 0 cam_speed 0.00000" \
+for v in "analogControl true useranalog On" "cameraSpeed 0.3 cam_speed 0.30000" "cameraSpeed 0 cam_speed 0.00000" \
 	"cameraDistance 320 cam_dist 320.00000" "cameraHeight 64.5 cam_height 64.50000" \
 	"fov 120 fov 120.00000" "fov 30 fov 60.00000" "fov 200 fov 179.00000" \
-	"scoreTimeRings Classic timerres Classic" "scoreTimeRings Centiseconds timerres Centiseconds" "scoreTimeRings Tics timerres Tics" \
-	"flipCamera false flipcam No" "autoBrake false autobrake Off" "musicPref MIDI musicpref MIDI"; do
+	"scoreTimeRings Normal timerres Normal" "scoreTimeRings Centiseconds timerres Centiseconds" "scoreTimeRings Tics timerres Tics" \
+	"flipCamera false flipcam No" "musicPref MIDI musicpref MIDI"; do
 	eval "set -- $v"
 	key="$1"; val="$2"; shift 2
 	case "$val" in [0-9]*|true|false) js="$val" ;; *) js="\"$val\"" ;; esac
@@ -441,28 +445,26 @@ unlocks() {
 	printf '%s\n' "$1" > "$root/build/gate/settings/settings"
 	"$native" "$root/build/gate/settings" -n 5 -p 0 --print-unlocks 2>/dev/null | grep '^unlocks'
 }
-for v in '{}|recordattack 0 nights 0 skins 0/' '{"unlockModes": true}|recordattack 1 nights 1 skins 0/' \
-	'{"unlockCharacters": true}|recordattack 0 nights 0 skins 3/3' '{"unlockAll": true}|recordattack 1 nights 1 skins 3/3 all 24/24' \
-	'{}|ramaps 0' '{"unlockMaps": true}|all 0/24 ramaps 28'; do
+for v in '{}|recordattack 0 nights 0 all 0/17' '{"unlockModes": true}|recordattack 1 nights 1 all 2/17' \
+	'{"unlockAll": true}|recordattack 1 nights 1 all 17/17' \
+	'{}|ramaps 0' '{"unlockMaps": true}|all 0/17 ramaps 21'; do
 	got="$(unlocks "$(echo "${v%%|*}" | sed 's/^{/{"warp": "1", /; s/, }$/}/')")"
 	case "$got" in *"${v#*|}"*) ;; *) ok=0; echo "  ${v%%|*}: want '${v#*|}', got '$got'" ;; esac
 done
-# the character Start Map plays as: the player's skin in the level; a locked
-# one needs the characters unlocked, an unknown one is the game's default
+# the character Start Map plays as: the player's skin in the level; an
+# unknown one is the game's default (2.1 locks no character)
 skin() {
 	printf '%s\n' "$1" > "$root/build/gate/settings/settings"
 	"$native" "$root/build/gate/settings" -n 100 -p 0 --print-skin 2>/dev/null | grep '^skin'
 }
-for v in '{"warp": "1"}|sonic' '{"warp": "1", "skin": "knuckles"}|knuckles' '{"warp": "1", "skin": "amy"}|sonic' \
-	'{"warp": "1", "skin": "amy", "unlockCharacters": true}|amy' '{"warp": "1", "skin": "nobody"}|sonic'; do
+for v in '{"warp": "1"}|sonic' '{"warp": "1", "skin": "knuckles"}|knuckles' '{"warp": "1", "skin": "tails"}|tails' \
+	'{"warp": "1", "skin": "nobody"}|sonic'; do
 	got="$(skin "${v%%|*}")"
 	[ "$got" = "skin ${v#*|}" ] || { ok=0; echo "  ${v%%|*}: want skin ${v#*|}, got '$got'"; }
 done
-case "$(cvars '{"warp": "1"}')" in *"cvar tutorialprompt Off "*) ;; *) ok=0; echo "  tutorialprompt is not Off by default" ;; esac
-case "$(cvars '{"warp": "1", "tutorialPrompt": true}')" in *"cvar tutorialprompt On "*) ;; *) ok=0; echo "  tutorialPrompt true is not On" ;; esac
-[ "$ok" = 1 ] && pass "settings: every other value of every setting is the engine's option (16 values, fov clamped to 60..179), tutorialprompt, the unlocks (the game data's; every Record Attack map, the menu's), and the Start Map character (5 cases)" \
+[ "$ok" = 1 ] && pass "settings: every other value of every setting is the engine's option (13 values, fov clamped to 60..179), the unlocks (the game data's; every Record Attack map, the menu's), and the Start Map character (4 cases)" \
 	|| bad "settings: a value did not reach the engine"
-[ "$(cvars '{"warp": "1", "scoreTimeRings": "Classic"}')" != "$want" ] && pass "settings teeth: another value is not the default's" \
+[ "$(cvars '{"warp": "1", "scoreTimeRings": "Normal"}')" != "$want" ] && pass "settings teeth: another value is not the default's" \
 	|| bad "settings teeth: a value changed nothing - the leg cannot fail"
 
 # ---- resolution: the picture's alone
@@ -517,7 +519,7 @@ fi
 if [ -n "$bundle" ]; then
 	sh "$here/build-package.sh" -m "${mb:-$MINIBOX_DIR}" -o "$root/build/gate/package" >/dev/null
 	e="$(LD_LIBRARY_PATH="$bundle/dll" python3 "$here/tests/engine-open.py" "$bundle/dll/libchimera.so" \
-		"$root/build/gate/package/srb2.chimeraCore" "$data" 450 2>/dev/null | grep "^450 steps")"
+		"$root/build/gate/package/srb2legacy.chimeraCore" "$data" 450 2>/dev/null | grep "^450 steps")"
 	nl="$(field "$(nat intro -n 450 -p 0 --input "$tests/menu-to-new-game.txt")" lag)"
 	# which Chimera: a bundle's BUILD.txt, or a checkout's commit (its build/ is
 	# the -c folder)
@@ -531,7 +533,7 @@ if [ -n "$bundle" ]; then
 	# opengl-hw: the renderer through Chimera's GPU bridge, where this machine
 	# gives the engine a context (none: SKIP, it is the machine's, not the
 	# core's); with no bridge asked for, opengl-hw warns and draws in software
-	pkg="$root/build/gate/package/srb2.chimeraCore"
+	pkg="$root/build/gate/package/srb2legacy.chimeraCore"
 	eo() { LD_LIBRARY_PATH="$bundle/dll" python3 "$here/tests/engine-open.py" "$bundle/dll/libchimera.so" "$pkg" "$data" "$@" 2>&1; }
 	softrun="$(eo 120 '{"resolution": "320x200", "warp": "1"}' | grep '^120 steps' || true)"
 	nobridge="$(eo 120 '{"renderer": "opengl-hw", "resolution": "320x200", "warp": "1"}' || true)"
@@ -553,9 +555,11 @@ if [ -n "$bundle" ]; then
 		# the character select: flat fills drawn with the renderer's imageless
 		# NOTEXTURE bound, which drew black on the GPU until gl_compat.c took an
 		# imageless texture as texturing off (2026-10-05, from use). The
-		# software renderer draws the same screen to the pixel at 320x200.
-		eo 300 '{"resolution": "320x200"}' --ppm "$root/build/gate/cs-soft.ppm" >/dev/null || true
-		eo 300 '{"renderer": "opengl-hw", "resolution": "320x200"}' --ppm "$root/build/gate/cs-gpu.ppm" --gpu >/dev/null || true
+		# software renderer draws the same screen to the pixel at 320x200. Step
+		# 250 is mid character select (SRB2 Legacy's menus are shorter than
+		# 2.2's, whose select was at 300).
+		eo 250 '{"resolution": "320x200"}' --ppm "$root/build/gate/cs-soft.ppm" >/dev/null || true
+		eo 250 '{"renderer": "opengl-hw", "resolution": "320x200"}' --ppm "$root/build/gate/cs-gpu.ppm" --gpu >/dev/null || true
 		apart="$(python3 -c '
 import sys
 a, b = (open(p, "rb").read().split(b"\n", 3)[3] for p in sys.argv[1:3])

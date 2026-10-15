@@ -1,6 +1,6 @@
 [submodule "extern/SRB2"]
 	path = extern/SRB2
-	url = https://github.com/STJr/SRB2.git
+	url = https://github.com/srb2-preservation/srb2-legacy.git
 [submodule "extern/ogg"]
 	path = extern/ogg
 	url = https://github.com/xiph/ogg.git

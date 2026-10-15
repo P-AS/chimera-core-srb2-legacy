@@ -223,14 +223,16 @@ INT32 I_mkdir(const char *dirname, INT32 unixright)
 	chimera_mkdir(dirname);
 	return 0;
 }
-const CPUInfoFlags *I_CPUInfo(void) { return NULL; }
 const char *I_LocateWad(void) { return "."; }
+/* the default home (DEFAULTDIR's), had the machine no -workdir: its root */
+const char *I_ConfigDir(void) { return "."; }
 char *I_GetEnv(const char *name) { (void)name; return NULL; }
 INT32 I_PutEnv(char *variable) { (void)variable; return -1; }
 INT32 I_ClipboardCopy(const char *data, size_t size) { (void)data; (void)size; return -1; }
 const char *I_ClipboardPaste(void) { return NULL; }
 void I_RegisterSysCommands(void) {}
-const char *I_GetSysName(void) { return "Chimera"; }
+const char *I_GetPlatform(void) { return "Chimera"; }
+int I_OpenURL(const char *url) { (void)url; return 0; }
 
 /* ---- input: the driver's, never the host's events */
 
@@ -262,11 +264,7 @@ void I_GetJoystickEvents(void) {}
 void I_GetJoystick2Events(void) {}
 void I_GetMouseEvents(void) {}
 void I_UpdateMouseGrab(void) {}
-void I_SetMouseGrab(boolean grab) { (void)grab; }
-void I_GetCursorPosition(INT32 *x, INT32 *y)
-{
-	*x = 0;
-	*y = 0;
-}
+/* a quake shakes the window (p_tick.c): the machine has none */
+void I_CursedWindowMovement(int xd, int yd) { (void)xd; (void)yd; }
 void I_SetTextInputMode(boolean active) { (void)active; }
 boolean I_GetTextInputMode(void) { return false; }

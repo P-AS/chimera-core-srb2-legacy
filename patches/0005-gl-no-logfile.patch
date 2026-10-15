@@ -1,8 +1,8 @@
 diff --git a/src/hardware/r_opengl/r_opengl.c b/src/hardware/r_opengl/r_opengl.c
-index 1de2f1d62..a03ae6cc6 100644
+index 474c628d..6fb94221 100644
 --- a/src/hardware/r_opengl/r_opengl.c
 +++ b/src/hardware/r_opengl/r_opengl.c
-@@ -190,7 +190,7 @@ FUNCPRINTF static void GL_MSG_Warning(const char *format, ...)
+@@ -186,7 +186,7 @@ static void GL_MSG_Warning(const char *format, ...)
  	vsnprintf(str, 4096, format, arglist);
  	va_end(arglist);
  
@@ -11,7 +11,7 @@ index 1de2f1d62..a03ae6cc6 100644
  	CONS_Alert(CONS_WARNING, "%s", str);
  #endif
  #ifdef DEBUG_TO_FILE
-@@ -213,7 +213,7 @@ FUNCPRINTF static void GL_MSG_Error(const char *format, ...)
+@@ -211,7 +211,7 @@ static void GL_MSG_Error(const char *format, ...)
  	vsnprintf(str, 4096, format, arglist);
  	va_end(arglist);
  
@@ -21,17 +21,18 @@ index 1de2f1d62..a03ae6cc6 100644
  #endif
  #ifdef DEBUG_TO_FILE
 diff --git a/src/hardware/r_opengl/r_opengl.h b/src/hardware/r_opengl/r_opengl.h
-index 197f75ea8..9cfeeb19d 100644
+index ecf1f354..3f4664d0 100644
 --- a/src/hardware/r_opengl/r_opengl.h
 +++ b/src/hardware/r_opengl/r_opengl.h
-@@ -59,7 +59,9 @@
- 
- // todo: find some way of getting SDL to log to ogllog.txt, without
- // interfering with r_opengl.dll
--#ifdef HAVE_SDL
-+// GL_NO_LOGFILE: a platform layer other than SDL's that has a console and no
-+// place for a log file (an external driver)
-+#if defined (HAVE_SDL) || defined (GL_NO_LOGFILE)
- #undef DEBUG_TO_FILE
- #endif
+@@ -57,6 +57,11 @@
  //#if defined(HAVE_SDL) && !defined(_DEBUG)
+ //#undef DEBUG_TO_FILE
+ //#endif
++// GL_NO_LOGFILE: a platform layer that has a console and no place for a log
++// file (an external driver)
++#ifdef GL_NO_LOGFILE
++#undef DEBUG_TO_FILE
++#endif
+ 
+ 
+ 

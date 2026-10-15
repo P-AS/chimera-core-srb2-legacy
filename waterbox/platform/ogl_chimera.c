@@ -11,7 +11,7 @@
  * The GL is not the machine's: a state brings back names the driver no longer
  * means, so at the top of every step a moved context (the bridge's id) or a
  * state loaded since makes the renderer forget every name and make its
- * objects again (chimera_gl_step, patches/0008).
+ * objects again (chimera_gl_step, patches/0006).
  *
  * No bridge offered, or one that will not start, and LoadGL fails: the engine
  * draws in software, which is another game (i_video.c), so the log says why.
@@ -229,7 +229,6 @@ void *hwSym(const char *funcName, void *handle)
 	GETFUNC(ClearBuffer);
 	GETFUNC(SetTexture);
 	GETFUNC(UpdateTexture);
-	GETFUNC(DeleteTexture);
 	GETFUNC(ReadScreenTexture);
 	GETFUNC(GClipRect);
 	GETFUNC(ClearMipMapCache);

@@ -6,7 +6,7 @@
 struct srb2_button
 {
 	const char *name;
-	int control; /* the game control (gamecontrols_e), GC_NULL for a menu key */
+	int control; /* the game control (gamecontrols_e), gc_null for a menu key */
 	int key;     /* the key it presses */
 };
 

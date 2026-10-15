@@ -13,12 +13,13 @@
  *     SDL_mixer ignores it;
  *   - music: GME's formats (VGM/VGZ, NSF, SPC, GBS, HES, KSS, AY, SAP, GYM),
  *     tracker modules (libopenmpt: MOD, S3M, XM, IT, MPTM...), MIDI (on six
- *     emulated YM2612s, midi_fm.cpp, as upstream's Windows builds play it with
- *     SDL_mixer_X's OPNMIDI), Ogg Vorbis and WAV, tried in upstream's order, with the loop point of the song's
+ *     emulated YM2612s, midi_fm.cpp, as SRB2 2.2's Windows builds play it
+ *     with SDL_mixer_X's OPNMIDI; SRB2 Legacy's own builds use plain
+ *     SDL_mixer, whose MIDI is the host's), Ogg Vorbis and WAV, tried in upstream's order, with the loop point of the song's
  *     LOOPPOINT= (samples, read as upstream reads it) or LOOPMS= tag, or the
  *     one the game sets; fades stepped every 10 ms of output, as upstream's
  *     SDL timer steps them, with the callback run from I_UpdateSound; the
- *     length and position the decoder gives (as SDL_mixer_X, upstream's
+ *     length and position the decoder gives (as SDL_mixer_X, SRB2 2.2's
  *     Windows builds, gives them). Which of a song's two the game plays, the
  *     digital one (O_) or the MIDI one (D_), is its musicpref setting.
  *
@@ -811,11 +812,11 @@ boolean I_LoadSong(char *data, size_t len)
 	else if (midi_fm_is_midi(copy, len))
 	{
 		/* MIDI: SDL_mixer_X's next, by its magic (OPNMIDI, upstream's
-		 * midiplayer, playing it as MU_MID_EX) */
+		 * midiplayer, playing it as MU_MID) */
 		s->midi = midi_fm_open(copy, len);
 		if (s->midi)
 		{
-			s->type = MU_MID_EX;
+			s->type = MU_MID;
 			s->rate = RATE;
 			s->channels = 2;
 			s->read = midi_read;
@@ -915,7 +916,7 @@ boolean I_PlaySong(boolean looping)
 		g_playing = true;
 		return true;
 	}
-	if (g_song->type == MU_MID_EX)
+	if (g_song->type == MU_MID)
 		midi_fm_start(g_song->midi, looping); /* OPNMIDI loops itself, at the song's loop points */
 	else
 		g_song->seek(g_song, 0);
@@ -1159,7 +1160,7 @@ static int music_raw(int frames)
 		memset(g_raw + got * 2, 0, (size_t)(frames - (int)got) * 4);
 		return frames;
 	}
-	if (g_song->type == MU_MID_EX)
+	if (g_song->type == MU_MID)
 	{
 		/* a looping song never ends (the sequencer loops it); one played
 		 * once stops at its end, as SDL_mixer's music_loop stops it */
@@ -1195,7 +1196,7 @@ static INT32 music_gain(INT32 sample, musictype_t type)
 		return (INT32)(INT16)(sample * music_volume * internal_volume / 100 / 20);
 	}
 	const INT32 mv = (INT32)((UINT32)music_volume * 128 / 31) * (INT32)internal_volume / 100;
-	return sample * (type == MU_MID_EX ? 2 * mv : mv) / 128;
+	return sample * (type == MU_MID ? 2 * mv : mv) / 128;
 }
 
 /* a step's output: the music, then every channel, summed and clipped */

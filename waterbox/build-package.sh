@@ -1,10 +1,11 @@
 #!/bin/sh
-# Builds the SRB2 core package, srb2.chimeraCore.
+# Builds the SRB2 Legacy core package, srb2legacy.chimeraCore.
 #
 # A package is core.wbx (fixed name) + waterbox.config + default_keybinds.json +
 # file_slots.json + the licences + build.json, loaded through Chimera's one
-# built-in generic adapter. It carries none of the game's data: srb2.pk3,
-# zones.pk3, characters.pk3 and music.pk3 are the project's firmware.
+# built-in generic adapter. It carries none of the game's data: srb2.srb,
+# zones.dta, player.dta, rings.dta, patch.dta, music.dta and legacy.pk3 are the
+# project's firmware.
 #
 # Usage: ./build-package.sh [-m <miniBox dir>] [-r <chimera root or bundle>] [-o <out dir>]
 #   -m  miniBox, built with its C++ guest toolchain (default $MINIBOX_DIR, else
@@ -141,7 +142,7 @@ json.dump({
 PYPROV
 
 mkdir -p "$out"
-zip_path="$out/srb2.chimeraCore"
+zip_path="$out/srb2legacy.chimeraCore"
 rm -f "$zip_path"
 # deterministic packaging: sorted entries, fixed timestamp and permissions,
 # pinned compression - the package's SHA1 is the core's identity (movies cite it)
@@ -175,7 +176,7 @@ print(f"package sha1 {first}")
 PYEOF
 
 if [ -n "$chimera_root" ]; then
-	for cache in "$chimera_root"/build/CoreCache/srb2-* "$chimera_root"/CoreCache/srb2-*; do
+	for cache in "$chimera_root"/build/CoreCache/srb2legacy-* "$chimera_root"/CoreCache/srb2legacy-*; do
 		[ -d "$cache" ] && rm -rf "$cache" || true
 	done
 fi

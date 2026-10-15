@@ -1,19 +1,23 @@
 #!/bin/sh
 # fetch-data.sh - the game's data for the gate where none is installed (CI).
 #
-# usage: waterbox/fetch-data.sh [<out folder>]   (default build/srb2-2.2.15)
+# usage: waterbox/fetch-data.sh [<out folder>]   (default build/srb2-legacy-data)
 #
-# SRB2's data is Sonic Team Junior's, freely distributed by them and never
-# carried by this repository: this downloads STJr's own 2.2.15 release
-# (SRB2-v2215-Full.zip, from github.com/STJr/SRB2's releases), takes the four
-# pk3s the core declares as firmware out of it, and checks each against
-# waterbox.config's SHA-1 - so the gate runs on exactly the files the package
-# declares. A folder that already holds them, checked, is left as it is.
+# SRB2's data is Sonic Team Junior's, freely distributed, and never carried by
+# this repository: this takes the files the core declares as firmware
+# (srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta and
+# legacy.pk3) from srb2-preservation's assets repository on Codeberg
+# (codeberg.org/srb2-preservation/assets, branch legacy, through git lfs), at
+# the commit named below, and checks each against waterbox.config's SHA-1 -
+# so the gate runs on exactly the files the package declares. They are the
+# same files as SRB2 Legacy 2.1.30's SRB2-Legacy-v2130-Full.zip. A folder that
+# already holds them, checked, is left as it is. Needs git-lfs.
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/.." && pwd)"
-out="${1:-$root/build/srb2-2.2.15}"
-url="https://github.com/STJr/SRB2/releases/download/SRB2_release_2.2.15/SRB2-v2215-Full.zip"
+out="${1:-$root/build/srb2-legacy-data}"
+repo="https://codeberg.org/srb2-preservation/assets.git"
+commit="1af2863f5755481c672b7a3a35ccd2133cc80b89"
 
 check() {
 	python3 - "$here/waterbox.config" "$out" <<'PY'
@@ -38,21 +42,18 @@ if check 2>/dev/null; then
 	echo "data: $out (already there, checked)"
 	exit 0
 fi
+command -v git-lfs >/dev/null 2>&1 || { echo "fetch-data: git-lfs is needed (apt-get install git-lfs)" >&2; exit 1; }
 mkdir -p "$out"
-zip="$out/SRB2-v2215-Full.zip"
-[ -f "$zip" ] || curl -fsSL --retry 3 --retry-delay 5 -o "$zip.part" "$url"
-[ -f "$zip" ] || mv "$zip.part" "$zip"
-python3 - "$zip" "$out" "$here/waterbox.config" <<'PY'
-import json, os, sys, zipfile
-zip_path, out, cfg = sys.argv[1], sys.argv[2], json.load(open(sys.argv[3]))
-wanted = {fw["name"].lower(): fw["name"] for fw in cfg["firmware"]}
-with zipfile.ZipFile(zip_path) as z:
-    for info in z.infolist():
-        base = os.path.basename(info.filename).lower()
-        if base in wanted:
-            with open(os.path.join(out, wanted[base]), "wb") as f:
-                f.write(z.read(info))
-PY
-rm -f "$zip"
+clone="$out/.assets"
+rm -rf "$clone"
+# the pointers first, then only the declared files' objects, at the pinned commit
+GIT_LFS_SKIP_SMUDGE=1 git clone -q --no-checkout --filter=blob:none "$repo" "$clone"
+git -C "$clone" -c advice.detachedHead=false checkout -q "$commit"
+names="$(python3 -c 'import json,sys; print(",".join(f["name"] for f in json.load(open(sys.argv[1]))["firmware"]))' "$here/waterbox.config")"
+git -C "$clone" lfs pull --include "$names"
+for f in $(echo "$names" | tr ',' ' '); do
+	cp "$clone/$f" "$out/$f"
+done
+rm -rf "$clone"
 check
-echo "data: $out (SRB2 2.2.15, from STJr's release, checked)"
+echo "data: $out (SRB2 Legacy's data, from srb2-preservation/assets at ${commit%"${commit#???????}"}, checked)"

@@ -12,7 +12,7 @@ extern "C" {
 
 struct midi_fm;
 
-/* a MIDI file's magic, as SDL_mixer_X (upstream's Windows builds) knows one:
+/* a MIDI file's magic, as SDL_mixer_X (SRB2 2.2's Windows builds) knows one:
  * Standard MIDI (MThd), RIFF MIDI (RMID), DMX MUS and XMI */
 int midi_fm_is_midi(const void *data, size_t len);
 

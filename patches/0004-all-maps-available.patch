@@ -1,8 +1,8 @@
 diff --git a/src/m_menu.c b/src/m_menu.c
-index 4822cff33..48e90f5ff 100644
+index cccbbf8a..82ff3dfe 100644
 --- a/src/m_menu.c
 +++ b/src/m_menu.c
-@@ -5024,10 +5024,18 @@ static void M_PatchSkinNameTable(void)
+@@ -4170,8 +4170,16 @@ static void M_PatchSkinNameTable(void)
  // The only question is whether it should be as a question mark,
  // (hinting as to its existence), or as its pure, unfettered self.
  //
@@ -13,19 +13,17 @@ index 4822cff33..48e90f5ff 100644
 +
  static boolean M_LevelAvailableOnPlatter(INT32 mapnum)
  {
- 	gamedata_t *data = serverGamedata;
- 
 +	if (menu_allmapsavailable)
 +		return true;
 +
- 	if (M_MapLocked(mapnum+1, data))
+ 	if (M_MapLocked(mapnum+1))
  		return false; // not unlocked
  
 diff --git a/src/m_menu.h b/src/m_menu.h
-index ecfe182d3..93b38d9ff 100644
+index eb994f6b..38b004f1 100644
 --- a/src/m_menu.h
 +++ b/src/m_menu.h
-@@ -356,6 +356,9 @@ extern I_mutex m_menu_mutex;
+@@ -179,6 +179,9 @@ boolean M_MouseNeeded(void);
  
  extern menu_t *currentMenu;
  
