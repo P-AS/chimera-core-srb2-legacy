@@ -51,7 +51,7 @@ repository or the package: it is the user's firmware.
 - `waterbox/tests/`: the gate's movies and helper scripts
   (`check-properties.py`, `timers.lua`, `spindash.txt` and `boss.lua`: the
   properties leg).
-- `lua/`: Lua scripts for Chimera's Lua Console: `tasinfo.lua`, the TAS info
+- `lua/`: Lua scripts for Chimera's Lua Console: `tasinfo-srb2-legacy.lua`, the TAS info
   overlay. They read the core's Game State properties by name (`game.get`).
 - `.github/workflows/chimera.yml`: CI. It gates, packages and publishes.
 - `build/`: every output. Ignored by git.

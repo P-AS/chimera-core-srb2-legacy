@@ -1,4 +1,4 @@
--- tasinfo.lua - SRB2 Legacy TAS info for Chimera: the player's speed, angle,
+-- tasinfo-srb2-legacy.lua - SRB2 Legacy TAS info for Chimera: the player's speed, angle,
 -- position, momentum, the momentum a conveyor or moving platform adds, the
 -- spindash's revs, the power timers and the boss's health and flashing, drawn
 -- over the game every frame.
@@ -114,7 +114,7 @@ end
 local BASE = { "Player.In Level", "Player.Speed", "Player.Angle", "Player.X", "Player.Y", "Player.Z",
 	"Player.Momentum X", "Player.Momentum Y", "Player.Momentum Z" }
 if not has(table.unpack(BASE)) then
-	console.log("tasinfo.lua: no SRB2 Legacy Game State here - load an SRB2 Legacy project first")
+	console.log("tasinfo-srb2-legacy.lua: no SRB2 Legacy Game State here - load an SRB2 Legacy project first")
 	return
 end
 local OPTIONAL = { "Player.Conveyor Momentum X", "Player.Conveyor Momentum Y", "Player.Platform Momentum Z",
@@ -126,7 +126,7 @@ for _, name in ipairs(OPTIONAL) do
 	if not HAVE[name] then missing[#missing + 1] = name end
 end
 if #missing > 0 then
-	console.log("tasinfo.lua: this SRB2 Legacy core is older than the script; not shown: " .. table.concat(missing, ", ") ..
+	console.log("tasinfo-srb2-legacy.lua: this SRB2 Legacy core is older than the script; not shown: " .. table.concat(missing, ", ") ..
 		" - install the latest chimera-core-srb2-legacy for them")
 end
 

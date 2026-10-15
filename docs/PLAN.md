@@ -47,7 +47,7 @@ shape, Game State, the gate and CI. What changed, and why:
   (Sonic: 15 to 90) coming on the next think; the launch's momentum is the charge less a tic of ground friction,
   and `player->speed` is reckoned a tic later. A Lua-spawned Egg Mobile flashes until it is back in its spawn state
   (leveltime 162 in the gate's boss test; 2.2 cleared it with its pain state). Entering Greenflower Zone Act 1 is
-  41 lag steps (2.2: 64). `tasinfo.lua` counts no revs below Min Dash.
+  41 lag steps (2.2: 64). `tasinfo-srb2-legacy.lua` counts no revs below Min Dash.
 - **Small platform answers** 2.1 asks for: `I_ConfigDir`, `I_GetPlatform`, `I_OpenURL`,
   `I_CursedWindowMovement` (Legacy shakes the window on quakes: the machine has none), `I_SetBorderlessWindow`,
   `I_InitTcpDriver`, `highcolor`; `VID_CheckRenderer` returns nothing; the renderer is fixed at the start as
@@ -74,6 +74,11 @@ shape, Game State, the gate and CI. What changed, and why:
   knows, where 2.2 had `MU_MID_EX`). Its rationale changes: SRB2 Legacy's own builds play MIDI through plain
   SDL_mixer (2.8.1 on Windows: the system's synthesizer or Timidity), whose sound differs by machine, so no
   upstream build is matched; the six YM2612s are a deterministic MIDI sound, the one the SRB2 core gives 2.2.
+- **The TAS info script** is `lua/tasinfo-srb2-legacy.lua` (user-decided 2026-10-15), so it is not taken for the
+  SRB2 core's `tasinfo.lua`, which reads 2.2's properties; it is in every release under that name.
+- **Score Display** (`scorepos`, user-asked 2026-10-15): a setting of Legacy's own, Normal or **Modern** (the core's
+  default; Legacy's own is Normal), where the HUD and the intermission draw the score's number - Modern 8 pixels
+  right, lined up with the time. The picture's alone.
 - **The package** is `srb2legacy.chimeraCore` (system `SRB2Legacy`, "SRB2 Legacy"; releases
   `srb2legacy-<version>-<arch>.chimeraCore`).
 
@@ -212,6 +217,7 @@ which differ from SRB2's own:
 | Camera Height | `cam_height` (user-decided 2026-10-15: 2.2's default) | **40** (25) |
 | Field of View | `fov`, 60..179 (`MINFOV`, `MAXFOV`), clamped, both renderers; the picture's alone. Recommended: 90 for normal levels, 120 for NiGHTS levels | **90** (90) |
 | Score/Time/Rings | `timerres`: Normal, Centiseconds, **Mania**, Tics | **Mania** (Normal) |
+| Score Display | `scorepos`: Normal, **Modern** (the score's number lined up with the time) | **Modern** (Normal) |
 | Flip Camera with Gravity | `flipcam` | **Yes** (No) |
 | Music Preference | `musicpref`: **Digital** (the `O_` songs), MIDI (the `D_` songs, on the MIDI player, at `midimusicvolume`); the sound's alone | **Digital** (Digital) |
 | Unlock Record Attack and NiGHTS Mode | the game data's `SECRET_RECORDATTACK` and `SECRET_NIGHTSMODE` unlockables (SRB2 Legacy offers Marathon Run always) | **Off** |
@@ -438,7 +444,7 @@ The harnesses take a movie as text (`--input FILE`: `FROM-TO: Button; Axis=value
 gone; a spindash charges 1.0 on its first tic, then from Min Dash; and the gate's boss flashes until it is back in
 its spawn state. See "The fork". The record below is the SRB2 core's.)
 
-The user asked for a Lua TAS info script (`lua/tasinfo.lua`): speed, the angle in hex and in decimal to 4 places
+The user asked for a Lua TAS info script (`lua/tasinfo-srb2-legacy.lua`): speed, the angle in hex and in decimal to 4 places
 (on lines of their own), the position and the momentum on three axes, and the speed shoes, invincibility, space
 and air timers; then (the same day) the conveyor and platform momentum on three axes, and a spindash rev counter,
 with the conveyor and platform momentum, the revs and the timers hidden while 0; then the boss's flashing and
@@ -633,8 +639,8 @@ runs `run-gate.sh` with the engine leg on the checkout's installed `libchimera`,
 the commit, runs Chimera's contract tests on it (`InstalledCorePackagesTests`, `MnemonicUniquenessTests`), and
 uploads `srb2legacy-<sha>`.
 
-**Every release carries `tasinfo.lua`** (user-asked, 2026-10-08): the `publish-lua` job, after `publish`, uploads
-`lua/tasinfo.lua` into the release just made and adds a line to its notes. Chimera's `publish-core.sh` uploads
+**Every release carries `tasinfo-srb2-legacy.lua`** (user-asked, 2026-10-08): the `publish-lua` job, after `publish`, uploads
+`lua/tasinfo-srb2-legacy.lua` into the release just made and adds a line to its notes. Chimera's `publish-core.sh` uploads
 only the package and deletes and recreates `dev` each time, so the script cannot ride along in it and must go up
 after; and the shared workflow is the Chimera project's, so the job is this repository's own. The release is the
 one `publish-core.yml` picks (a nightly for the schedule or kind `nightly`, else `dev`); a nightly is found as the

@@ -83,7 +83,8 @@
 #   settings     the declared settings reach the engine as its options: with no
 #                setting given, and with every declared default given, the
 #                engine plays useranalog Off, cam_speed 1.0, cam_dist 192,
-#                cam_height 40, fov 90, timerres Mania, flipcam Yes, musicpref
+#                cam_height 40, fov 90, timerres Mania, scorepos Modern,
+#                flipcam Yes, musicpref
 #                Digital, nothing unlocked, Sonic; each other value of each
 #                setting is the engine's option (read back with run-native
 #                --print-cvar). Its teeth - another value is not the default's
@@ -413,15 +414,15 @@ content settings '{"warp": "1"}'
 cvars() {
 	printf '%s\n' "$1" > "$root/build/gate/settings/settings"
 	"$native" "$root/build/gate/settings" -n 5 -p 0 --print-cvar useranalog \
-		--print-cvar cam_speed --print-cvar cam_dist --print-cvar cam_height --print-cvar fov --print-cvar timerres --print-cvar flipcam --print-cvar musicpref 2>/dev/null \
+		--print-cvar cam_speed --print-cvar cam_dist --print-cvar cam_height --print-cvar fov --print-cvar timerres --print-cvar scorepos --print-cvar flipcam --print-cvar musicpref 2>/dev/null \
 		| grep '^cvar' | tr '\n' ' '
 }
-want="cvar useranalog Off cvar cam_speed 1.00000 cvar cam_dist 192.00000 cvar cam_height 40.00000 cvar fov 90.00000 cvar timerres Mania cvar flipcam Yes cvar musicpref Digital "
+want="cvar useranalog Off cvar cam_speed 1.00000 cvar cam_dist 192.00000 cvar cam_height 40.00000 cvar fov 90.00000 cvar timerres Mania cvar scorepos Modern cvar flipcam Yes cvar musicpref Digital "
 none="$(cvars '{"warp": "1"}')"
 defaults="$(python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); d={s["name"]:s["default"] for s in c["settings"]}; d["warp"]="1"; print(json.dumps(d))' "$decl")"
 explicit="$(cvars "$defaults")"
 if [ "$none" = "$want" ] && [ "$explicit" = "$want" ]; then
-	pass "settings: the defaults, absent or given, are useranalog Off, cam_speed 1.0, cam_dist 192, cam_height 40, fov 90, timerres Mania, flipcam Yes, musicpref Digital"
+	pass "settings: the defaults, absent or given, are useranalog Off, cam_speed 1.0, cam_dist 192, cam_height 40, fov 90, timerres Mania, scorepos Modern, flipcam Yes, musicpref Digital"
 else
 	bad "settings: the defaults are not what they should be: absent '$none', given '$explicit', want '$want'"
 fi
@@ -429,7 +430,7 @@ ok=1
 for v in "analogControl true useranalog On" "cameraSpeed 0.3 cam_speed 0.30000" "cameraSpeed 0 cam_speed 0.00000" \
 	"cameraDistance 320 cam_dist 320.00000" "cameraHeight 64.5 cam_height 64.50000" \
 	"fov 120 fov 120.00000" "fov 30 fov 60.00000" "fov 200 fov 179.00000" \
-	"scoreTimeRings Normal timerres Normal" "scoreTimeRings Centiseconds timerres Centiseconds" "scoreTimeRings Tics timerres Tics" \
+	"scoreTimeRings Normal timerres Normal" "scoreTimeRings Centiseconds timerres Centiseconds" "scoreTimeRings Tics timerres Tics" "scorePos Normal scorepos Normal" \
 	"flipCamera false flipcam No" "musicPref MIDI musicpref MIDI"; do
 	eval "set -- $v"
 	key="$1"; val="$2"; shift 2
@@ -462,7 +463,7 @@ for v in '{"warp": "1"}|sonic' '{"warp": "1", "skin": "knuckles"}|knuckles' '{"w
 	got="$(skin "${v%%|*}")"
 	[ "$got" = "skin ${v#*|}" ] || { ok=0; echo "  ${v%%|*}: want skin ${v#*|}, got '$got'"; }
 done
-[ "$ok" = 1 ] && pass "settings: every other value of every setting is the engine's option (13 values, fov clamped to 60..179), the unlocks (the game data's; every Record Attack map, the menu's), and the Start Map character (4 cases)" \
+[ "$ok" = 1 ] && pass "settings: every other value of every setting is the engine's option (14 values, fov clamped to 60..179), the unlocks (the game data's; every Record Attack map, the menu's), and the Start Map character (4 cases)" \
 	|| bad "settings: a value did not reach the engine"
 [ "$(cvars '{"warp": "1", "scoreTimeRings": "Normal"}')" != "$want" ] && pass "settings teeth: another value is not the default's" \
 	|| bad "settings teeth: a value changed nothing - the leg cannot fail"
