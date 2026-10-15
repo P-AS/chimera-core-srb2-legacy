@@ -31,8 +31,9 @@ shape, Game State, the gate and CI. What changed, and why:
 - **Settings**: 2.1 has no play styles (only Analog Control, `useranalog`), no `autobrake`, no tutorial (so no
   `tutorialprompt`), and no locked characters (no `SECRET_SKIN`; Amy, Fang and Metal Sonic are 2.2's), and SRB2
   Legacy always offers Marathon Run. So Play Style became **Analog Control** (Off, SRB2's own), and Automatic
-  Braking, Tutorial Prompt and Unlock All Characters are gone. Camera Distance and Height default to Legacy's own
-  160 and 25; Score/Time/Rings' first option is Legacy's "Normal" (2.2's "Classic"). The SRB2 core's
+  Braking, Tutorial Prompt and Unlock All Characters are gone. Camera Distance and Height default to 2.2's 192
+  and 40, as the SRB2 core's do (user-decided 2026-10-15; Legacy's own are 160 and 25); Score/Time/Rings' first
+  option is Legacy's "Normal" (2.2's "Classic"). The SRB2 core's
   user-decided defaults that still apply are kept: Camera Speed 1.0, Mania, Flip Camera Yes.
 - **The controller**: the same 24 buttons and 4 axes, on 2.1's controls (`gc_*`; Spin is 2.1's `gc_use`), its
   key events in `event_t.data1`; the bindings forced by clearing them all, `G_Controldefault`, then each button's
@@ -207,8 +208,8 @@ which differ from SRB2's own:
 |---|---|---|
 | Analog Control | `useranalog`: the player faces and moves where the input points, the camera following (2.1's analog control); the fork's replacement for 2.2's Play Style | **Off** (Off) |
 | Camera Speed | `cam_speed`, 0..1, clamped, printed at 5 places | **1.0** (0.3) |
-| Camera Distance | `cam_dist` | **160** (160) |
-| Camera Height | `cam_height` | **25** (25) |
+| Camera Distance | `cam_dist` (user-decided 2026-10-15: 2.2's default) | **192** (160) |
+| Camera Height | `cam_height` (user-decided 2026-10-15: 2.2's default) | **40** (25) |
 | Field of View | `fov`, 60..179 (`MINFOV`, `MAXFOV`), clamped, both renderers; the picture's alone. Recommended: 90 for normal levels, 120 for NiGHTS levels | **90** (90) |
 | Score/Time/Rings | `timerres`: Normal, Centiseconds, **Mania**, Tics | **Mania** (Normal) |
 | Flip Camera with Gravity | `flipcam` | **Yes** (No) |

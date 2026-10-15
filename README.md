@@ -101,8 +101,8 @@ The harnesses' `--wav FILE` writes a run's sound.
 ## Settings
 
 Declared in `waterbox/waterbox.config`, so Chimera shows them as the core's options; each is SRB2 Legacy's own option,
-given to the engine at start: Analog Control (Off: 2.1's useranalog), Camera Speed (1.0), Camera Distance (160),
-Camera Height (25), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is
+given to the engine at start: Analog Control (Off: 2.1's useranalog), Camera Speed (1.0), Camera Distance (192, as in
+SRB2 2.2; Legacy's own is 160), Camera Height (40, as in 2.2; Legacy's own is 25), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is
 recommended for NiGHTS levels), Score/Time/Rings (Mania), Flip Camera with Gravity (Yes), Unlock Record Attack and
 NiGHTS Mode, Unlock All Maps in Record Attack and NiGHTS Mode, Unlock All Secrets (each Off), Music Preference
 (Digital: the recorded songs; MIDI: the game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips,

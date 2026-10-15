@@ -52,9 +52,10 @@ ECL_EXPORT const char *GetLoadError(void) { return g_load_error; }
  *                   looks; default Off, SRB2's own
  *   cameraSpeed     cam_speed, 0 to 1; the core's default 1.0
  *   cameraDistance  cam_dist, the camera's distance behind the player in
- *                   map units; SRB2 Legacy's default 160
- *   cameraHeight    cam_height, its height above the player; SRB2
- *                   Legacy's default 25
+ *                   map units; the core's default 192, SRB2 2.2's (SRB2
+ *                   Legacy's own is 160)
+ *   cameraHeight    cam_height, its height above the player; the core's
+ *                   default 40, SRB2 2.2's (SRB2 Legacy's own is 25)
  *   fov             fov, the field of view in degrees, 60 to 179 (SRB2's
  *                   MINFOV, MAXFOV), both renderers; SRB2's default 90.
  *                   Recommended 90 for normal levels, 120 for NiGHTS
@@ -158,8 +159,8 @@ static void settings_args(void)
 
 	setting_float("cameraSpeed", "+cam_speed", 1.0, 0.0, 1.0);
 	/* the engine's fixed point holds +-32767 */
-	setting_float("cameraDistance", "+cam_dist", 160.0, -32767.0, 32767.0);
-	setting_float("cameraHeight", "+cam_height", 25.0, -32767.0, 32767.0);
+	setting_float("cameraDistance", "+cam_dist", 192.0, -32767.0, 32767.0);
+	setting_float("cameraHeight", "+cam_height", 40.0, -32767.0, 32767.0);
 	setting_float("fov", "+fov", 90.0, 60.0, 179.0);
 
 	int tr = 2; /* Mania */
