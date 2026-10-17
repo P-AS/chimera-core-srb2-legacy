@@ -751,3 +751,14 @@ Found reading the engine, for the milestones ahead:
   precise clock: interpolation must be off (one picture per tic).
 - The configuration (`config.cfg`) and game data (`gamedata.dat`) live in SRB2's folder, the machine's root
   (above, "The game's home").
+
+## Plain language (2026-10-16, user-asked)
+
+Ported from the SRB2 core, which follows Chimera's decision that commits, documents and replies are written in
+plain language (chimera#239) and its owner's request to rewrite every core's texts (chimera#241):
+
+- AGENTS.md has the rule, and commit messages now say what changed, why, and how it was tested.
+- Every setting, firmware file, file slot and Game State property has a new description. The facts are the
+  same; console variables are named as "SRB2's console variable cam_speed".
+- The property table's buffer grew from 8 to 16 KiB, as the longer descriptions came close to 8 KiB.
+- Older sections of the documents stay as they are until somebody edits them.
