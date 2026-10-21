@@ -79,8 +79,9 @@ shape, Game State, the gate and CI. What changed, and why:
 - **Score Display** (`scorepos`, user-asked 2026-10-15): a setting of Legacy's own, Normal or **Modern** (the core's
   default; Legacy's own is Normal), where the HUD and the intermission draw the score's number - Modern 8 pixels
   right, lined up with the time. The picture's alone.
-- **The package** is `srb2legacy.chimeraCore` (system `SRB2Legacy`, "SRB2 Legacy"; releases
-  `srb2legacy-<version>-<arch>.chimeraCore`).
+- **The package** is `srb2legacy.chimeraCore` (releases `srb2legacy-<version>-<arch>.chimeraCore`).
+  Its system is the SRB2 core's, `SRB2` ("Sonic Robo Blast 2"): both cores run the same game, so
+  Chimera lists them as two cores of one system, and the core name ("SRB2 Legacy") tells them apart.
 
 What follows is the SRB2 core's record, corrected where the fork changed it.
 
