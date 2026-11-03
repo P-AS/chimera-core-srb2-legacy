@@ -673,8 +673,8 @@ under `set -e` (an empty run is now a leg's FAIL).
 
 ## Not on Chimera's roster
 
-The SRB2 core has been on Chimera's roster since Chimera's 9aff711 (2026-10-10). This fork is not (user-decided:
-an unofficial third-party core): Chimera's CI does not fetch its nightlies, and no release notifications are set up.
+The SRB2 core was on Chimera's official roster from Chimera's 9aff711 (2026-10-10) until b8a30557 (2026-10-31), when it
+moved to the third-party list. This fork was never on the roster (user-decided: an unofficial third-party core): Chimera's CI does not fetch its nightlies, and no release notifications are set up.
 A release still carries `srb2legacy-<version>-x64.chimeraCore` and `srb2legacy-<version>-arm64.chimeraCore`, and
 its notes say most users want the x64 one (the `publish-lua` job, as in the SRB2 core).
 
