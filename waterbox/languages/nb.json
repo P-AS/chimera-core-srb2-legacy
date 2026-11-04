@@ -61,7 +61,7 @@
 		"setting.fov": "Synsfelt",
 		"setting.fov.about": "Hvor bredt kameraets utsyn er, i grader fra side til side, fra 60 til 179 (konsollvariabelen fov i SRB2). Det virker i begge renderere. Standarden, 90, er den i SRB2. La den stå på 90 for vanlige nivåer, og sett den til 120 for NiGHTS-nivåer, der det bredere utsynet viser mer av banen foran. Det endrer bare bildet: spillet er det samme for hvert synsfelt.",
 		"setting.glshaders": "OpenGL-shadere",
-		"setting.glshaders.about": "Slår på shaderne til OpenGL-rendereren (konsollvariabelen gr_shaders i SRB2), som gir lyset, tåken og fargepaletten i SRB2. Når den er av, tegnes bildet uten shadere, på OpenGLs eldre, faste måte. Det endrer bare bildet: spillet er det samme uansett.",
+		"setting.glshaders.about": "Slår på shaderne til OpenGL-rendereren (konsollvariabelen gr_shaders i SRB2), som gir lyset, tåken og fargepaletten i SRB2. Når den er av, tegnes bildet uten shadere, på den eldre, faste måten til OpenGL. Det endrer bare bildet: spillet er det samme uansett.",
 		"setting.musicpref": "Musikkvalg",
 		"setting.musicpref.about": "Hvilken av to versjoner av en sang som spilles (konsollvariabelen musicpref i SRB2). Digital: den innspilte musikken (Ogg Vorbis). MIDI: spillets MIDI-sanger, spilt på seks emulerte YM2612-lydbrikker (brikken fra Sega Genesis / Mega Drive, med MAMEs emulering), med MIDI-volumet i SRB2 (midimusicvolume). En sang med bare én versjon spiller den. Det endrer bare lyden: spillet forløper likt med begge.",
 		"setting.renderer": "Renderer",
