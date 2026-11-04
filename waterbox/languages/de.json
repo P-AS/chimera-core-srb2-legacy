@@ -4,7 +4,7 @@
 		"common.2_1_30": "2.1.30",
 		"error.no_memory_for_the_engine_s_stack": "Für den Stack der Engine ist kein Speicher vorhanden.",
 		"error.out_of_memory_for_the_picture": "Für das Bild ist nicht genug Speicher vorhanden.",
-		"firmware.legacy_pk3": "SRB2-Legacy-Daten",
+		"firmware.legacy_pk3": "Daten für SRB2 Legacy",
 		"firmware.legacy_pk3.about": "Die eigenen Ergänzungen von SRB2 Legacy (2.1.30): die Grafiken der Ebenenauswahl im Stil von 2.2 (die Ebenenplatte) und von Marathon Run. Das Spiel prüft die MD5-Prüfsumme der Datei selbst.",
 		"firmware.music_dta": "SRB2-Musik",
 		"firmware.music_dta.about": "Die Musik des Spiels: die Ogg-Vorbis-Stücke und die MIDI-Stücke, die die Einstellung Musikvorgabe abspielen kann. Das Spiel lehnt eine music.dta ab, die außer Musik und Klängen etwas anderes enthält.",
