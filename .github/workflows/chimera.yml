@@ -5,7 +5,7 @@ name: chimera waterbox core
 # 2.1), published by its author (github.com/P-AS/chimera-core-srb2-legacy),
 # forked from the SRB2 core (github.com/P-AS/chimera-core-srb2): it builds
 # against Chimera's public main and publishes into this repository's own
-# releases through Chimera's reusable publish workflow (the aarch64 fork's).
+# releases through Chimera's reusable publish workflow.
 #
 # SRB2's data is Sonic Team Junior's, freely distributed and never carried
 # here: the gate takes it from srb2-preservation's assets repository
@@ -25,8 +25,8 @@ name: chimera waterbox core
 #
 # The gate runs twice, once per host CPU, on a runner of that CPU: x86-64
 # against Chimera's public main, and aarch64 (miniBox's aarch64 machine)
-# against Chimera's aarch64 build (ToolAssisted-run/chimera#309; until it
-# merges, github.com/P-AS/chimera, branch aarch64), whose miniBox is upstream's. Both must pass for a release, and
+# against Chimera's public main, which builds aarch64 too (ToolAssisted-run/chimera#309, merged
+# 2026-11-06), and miniBox is upstream's. Both must pass for a release, and
 # both packages are in it, each named by the leg's CPU:
 # srb2legacy-<version>-x64.chimeraCore and srb2legacy-<version>-arm64.chimeraCore.
 
@@ -68,8 +68,8 @@ jobs:
             chimera-ref: main
           - arch: arm64
             runner: ubuntu-26.04-arm
-            chimera-repo: P-AS/chimera
-            chimera-ref: aarch64
+            chimera-repo: ToolAssisted-run/chimera
+            chimera-ref: main
     steps:
       - uses: actions/checkout@v6
         with:
@@ -211,23 +211,18 @@ jobs:
     # each carrying both packages, srb2legacy-<version>-x64.chimeraCore and
     # srb2legacy-<version>-arm64.chimeraCore. A push to main or a pull request
     # publishes nothing. The logic is Chimera's tools/publish-core.sh, through the
-    # one reusable workflow every core publishes with - the aarch64 fork's, which
-    # publishes a package per CPU, running the fork's own publish-core.sh.
+    # one reusable workflow every core publishes with, which publishes a package per CPU.
     name: publish
     needs: [ gate ]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
-    uses: P-AS/chimera/.github/workflows/publish-core.yml@aarch64
+    uses: ToolAssisted-run/chimera/.github/workflows/publish-core.yml@main
     with:
       core-id: srb2legacy
       artifact: srb2legacy-${{ github.sha }}
       package: srb2legacy.chimeraCore
       arches: x64 arm64
-      # the fork's publish-core.sh makes a dev build when kind is blank
-      kind: nightly
-      chimera-repository: P-AS/chimera
-      chimera-ref: aarch64
 
   publish-lua:
     # lua/tasinfo-srb2-legacy.lua as an asset of the nightly release publish just made. Chimera's
