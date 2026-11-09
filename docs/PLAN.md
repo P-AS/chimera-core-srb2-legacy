@@ -628,7 +628,7 @@ gives - and a fractional one goes through `exp`/`log`.
 
 `.github/workflows/chimera.yml`, modeled on the DSDA core's: one `gate` job and the `publish` job every core
 publishes with (Chimera's reusable `publish-core.yml`: a dated `nightly-YYYY-MM-DD` from the 04:23 UTC schedule when main moved, and by hand: Actions > Run workflow;
-a push to main publishes nothing; off the hour, where GitHub drops fewer scheduled runs - 04:00 never fired).
+off the hour, where GitHub drops fewer scheduled runs - 04:00 never fired).
 
 The gate job checks out this repository (submodules; `extern/openmpt` shallow) and Chimera (`CHIMERA_REF`,
 main), builds Chimera's native libraries and solution, builds miniBox's host and C++ guest toolchain (cached;
@@ -641,7 +641,19 @@ uploads `srb2legacy-<sha>`.
 
 **`runsOn`** (user-decided, 2026-11-05): `waterbox.config` lists all six systems - windows-x86_64, windows-aarch64,
 linux-x86_64, linux-aarch64, macos-x86_64, macos-aarch64 - since both CPUs' packages are built for them. Chimera refuses
-a package that lists none, and `publish-core.sh` refuses an arm64 package whose `runsOn` names no aarch64 system.
+a package that lists none, and `publish-core.sh` refuses an aarch64 package whose `runsOn` names no aarch64 system.
+
+**Dev builds, this repository's own** (user-decided, 2026-11-09): Chimera's main made publishing nightly-only on
+2026-11-05 (09d87d78a), and this core followed (a824541), but its author still uses a build of every push. So the
+`publish-dev` job, on a green push to main (or Actions > Run workflow with kind `dev`), runs `.github/publish-dev.sh`
+(the SRB2 core's, the same file): it deletes the `dev` pre-release and its tag, makes it again at the commit, never
+Latest, and uploads both packages, named as a nightly's, and `lua/tasinfo-srb2-legacy.lua`. Its notes are a
+nightly's, with Chimera's `european-time.py` and `release-changes.py` (sparse checkout of `tools`), and say it is
+replaced.
+
+**CPU names** (2026-11-09): the same Chimera commit names a package's CPU `x86_64` or `aarch64`, not `x64` or
+`arm64`, and `publish-core.sh` refuses the old names - the nightlies of 2026-11-07 to 2026-11-09 failed on it. The
+gate's matrix, its artifacts (`srb2legacy-<sha>-x86_64`, `srb2legacy-<sha>-aarch64`) and `arches` use the new names.
 
 **Every release carries `tasinfo-srb2-legacy.lua`** (user-asked, 2026-10-08): the `publish-lua` job, after `publish`, uploads
 `lua/tasinfo-srb2-legacy.lua` into the release just made and adds a line to its notes. Chimera's `publish-core.sh` uploads
@@ -678,8 +690,9 @@ under `set -e` (an empty run is now a leg's FAIL).
 
 The SRB2 core was on Chimera's official roster from Chimera's 9aff711 (2026-10-10) until b8a30557 (2026-10-31), when it
 moved to the third-party list. This fork was never on the roster (user-decided: an unofficial third-party core): Chimera's CI does not fetch its nightlies, and no release notifications are set up.
-A release still carries `srb2legacy-<version>-x64.chimeraCore` and `srb2legacy-<version>-arm64.chimeraCore`, and
-its notes say most users want the x64 one (the `publish-lua` job, as in the SRB2 core).
+A release still carries `srb2legacy-<version>-x86_64.chimeraCore` and `srb2legacy-<version>-aarch64.chimeraCore`
+(x64 and arm64 until 2026-11-09), and its notes say most users want the x86_64 one (the shared `publish-core.sh`'s
+notes, since 2026-11-05).
 
 ## The game's home
 

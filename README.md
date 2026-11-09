@@ -16,13 +16,14 @@ rings.dta, patch.dta, music.dta and legacy.pk3 - is firmware: the core carries n
 ## Using it in Chimera
 
 Chimera ships no cores and downloads nothing. Download the core's package from this repository's
-[Releases](https://github.com/P-AS/chimera-core-srb2-legacy/releases) page (dated
+[Releases](https://github.com/P-AS/chimera-core-srb2-legacy/releases) page (a rolling `dev` build, dated
 `nightly-YYYY-MM-DD` builds), or build it, and put it in the `cores` folder beside Chimera's program (or the folder
 chosen in Tools > Core Manager... > Change folder...).
 
-Each release has two packages, one per CPU: `srb2legacy-<version>-x64.chimeraCore` and
-`srb2legacy-<version>-arm64.chimeraCore`. **You most likely want the x64 one.** Take the arm64 one only if you know
-you are using an arm64 device. Put only one of them in the `Cores` folder: two packages of one core list it twice.
+Each release has two packages, one per CPU: `srb2legacy-<version>-x86_64.chimeraCore` and
+`srb2legacy-<version>-aarch64.chimeraCore`. **On Windows or Linux you most likely want the x86_64 one.** Take the
+aarch64 one only if you know you are using an ARM device; on a Mac, aarch64 for Apple silicon and x86_64 for an Intel
+Mac. Put only one of them in the `Cores` folder: two packages of one core list it twice.
 The same file works on Linux and on Windows. None of the game's data is in the package: a project brings SRB2
 Legacy 2.1.30's seven data files as firmware (as its `SRB2-Legacy-v2130-Full.zip` and
 [srb2-preservation's assets repository](https://codeberg.org/srb2-preservation/assets) have them; legacy.pk3
@@ -53,7 +54,7 @@ nothing). `extern/openmpt` is shallow: `git submodule update --init` fetches onl
 `waterbox/fetch-data.sh [<folder>]` takes the seven data files from srb2-preservation's assets repository on
 Codeberg (git lfs, at a pinned commit), checked against the declared firmware (default `build/srb2-legacy-data`);
 `run-gate.sh -d <folder>` runs on them. CI (`.github/workflows/chimera.yml`) does this, then the gate, the package
-and Chimera's contract tests, on x64 and on arm64, and publishes nightly releases with both packages.
+and Chimera's contract tests, on x86_64 and on aarch64, and publishes `dev` and nightly releases with both packages.
 
 ## The package
 
@@ -140,7 +141,7 @@ conveyor or a moving platform adds), `Player.Platform Momentum Z` (`mo->pmomz`: 
 `MF_BOSS` object, as the SRB2 TAS build finds the boss: its health, its type's starting health, and `MF2_FRET`); `Player.Angle` (2^32 a turn); `Timers.Speed Shoes`, `Timers.Invincibility`,
 `Timers.Space`, `Timers.Air` (tics left). Out of a level the player's fields are 0.
 
-`lua/tasinfo-srb2-legacy.lua` (also an asset of every nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
+`lua/tasinfo-srb2-legacy.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
 speed, the angle in hex and in degrees (each to 4 decimal places, on lines of their own), the position and the
 momentum, the conveyor and platform momentum, the spindash's revs, the four timers in tics and seconds, and while a boss is in the level its health (left /
 at the start) and whether it is flashing. SRB2

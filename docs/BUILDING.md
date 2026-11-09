@@ -6,7 +6,7 @@ an emulator (Chimera's `docs/game-cores.md`). It is an unofficial third-party
 core, written and published here by its author (P-AS), forked from the SRB2
 core (https://github.com/P-AS/chimera-core-srb2). The result is one file,
 `srb2legacy.chimeraCore`, which Chimera loads (a release names it
-`srb2legacy-<version>-<x64|arm64>.chimeraCore`); the game's data is the
+`srb2legacy-<version>-<x86_64|aarch64>.chimeraCore`); the game's data is the
 user's. The steps below follow `.github/workflows/chimera.yml`, which builds
 and gates the core from a fresh clone on a public Ubuntu runner.
 
@@ -209,15 +209,21 @@ commit's (UTC), never the build's.
 A hand-built package is for testing. Chimera's publish script refuses a
 version that carries `+local` or `-dirty`.
 
-CI publishes what its gate passed as this repository's own releases: a dated
-`nightly-YYYY-MM-DD` release from the scheduled run (04:23 UTC, only when `main` moved since the
-last one). Actions > Run workflow publishes one by hand. A push to `main` publishes nothing.
+CI publishes what its gate passed as this repository's own releases: a rolling
+`dev` pre-release on every green push to `main`, and a dated `nightly-YYYY-MM-DD`
+release from the scheduled run (04:23 UTC, only when `main` moved since the
+last one). Actions > Run workflow publishes a nightly by hand, or with kind
+`dev` a dev build.
 The gate job uploads the package as the artifact `srb2legacy-<commit>`
 (`actions/upload-artifact@v7`), and the publish job hands it to Chimera's
 public reusable workflow `publish-core.yml`. Then this repository's own
 `publish-lua` job uploads `lua/tasinfo-srb2-legacy.lua`, from the same commit, into that
 release (the newest `nightly-*` at the commit) and adds a line about
 it to the release notes; the gate job has checked it parses (`luac5.4 -p`).
+Chimera's `publish-core.sh` publishes nightlies only, so the `dev` build is
+this repository's own: the `publish-dev` job runs `.github/publish-dev.sh`,
+which deletes the old `dev` and makes it again with both packages and
+`lua/tasinfo-srb2-legacy.lua`.
 There is no manual equivalent.
 
 ## Install it into Chimera
@@ -231,10 +237,11 @@ depends on Chimera beyond its stock `main`.
   repository's Releases page
   (https://github.com/P-AS/chimera-core-srb2-legacy/releases), or build it,
   and put it in the `cores` folder beside Chimera's program. A release has
-  `srb2legacy-<version>-x64.chimeraCore` and
-  `srb2legacy-<version>-arm64.chimeraCore`:
-  you most likely want the x64 one; take the arm64 one only if you know you
-  are using an arm64 device. Put only one of them in the folder. Another folder can be chosen
+  `srb2legacy-<version>-x86_64.chimeraCore` and
+  `srb2legacy-<version>-aarch64.chimeraCore`:
+  on Windows or Linux you most likely want the x86_64 one; take the aarch64 one
+  only if you know you are using an ARM device (on a Mac, aarch64 for Apple
+  silicon, x86_64 for an Intel Mac). Put only one of them in the folder. Another folder can be chosen
   in Tools > Core Manager... > Change folder...
   `./waterbox/build-package.sh -r <bundle>` writes it there.
 - **A Chimera source checkout**: the cores folder is `<chimera>/build/Cores/`.
