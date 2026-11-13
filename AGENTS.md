@@ -196,6 +196,10 @@ CHIMERA_CORES_DIR=<chimera>/build/Cores <chimera>/build/meson-linux/source/ui/te
   `settings: Score Display is a setting, Modern by default`. Body: short -
   what changed, why, and how it was tested, with the numbers. A list is fine.
 - Do not edit `.github/workflows` unless the task is the workflow.
+- Never credit an AI model or tool in a commit or pull request: no
+  `Co-Authored-By:` (or similar) trailer for it, and no "Generated with"
+  line. The note in README.md about AI assistance is sufficient to tell users
+  how the core was made.
 
 ## Where to read more
 
