@@ -1,155 +1,186 @@
 # chimera-core-srb2-legacy
 
-[SRB2 Legacy](https://github.com/srb2-preservation/srb2-legacy) (srb2-preservation's updated fork of
-[Sonic Robo Blast 2](https://srb2.org/) 2.1.25, Sonic Team Junior's 3D Sonic fangame, from Doom Legacy) as a
-[Chimera](https://github.com/ToolAssisted-run/chimera) **game core** (`"kind": "game"`, see Chimera's
-`docs/game-cores.md`). It is an **unofficial third-party core**: its author, P-AS, writes and publishes it from this
-repository. It is a fork of the SRB2 (2.2) core, [chimera-core-srb2](https://github.com/P-AS/chimera-core-srb2), and
-keeps its shape: the platform layer, the mixer, the controller, the gate. It needs no change to Chimera. See
-`docs/PLAN.md` for the fork, the milestones and the decisions.
+A third-party [Chimera](https://github.com/ToolAssisted-run/chimera) game core for [SRB2 Legacy](https://github.com/srb2-preservation/srb2-legacy) v2.1.30, srb2-preservation's updated fork of [Sonic Robo Blast 2](https://srb2.org/) v2.1.25. This core facilitates tool-assisted speedrunning of SRB2 Legacy (including mods) with the benefits of the Chimera TAS frontend, such as a simplified setup process, cross-platform support, an easily accessible game state with a lua-based TAS info overlay, the TAStudio input editor, and persistent savestates.
 
-The engine is upstream SRB2 Legacy (`extern/SRB2`, the `SRB2_release_2.1.30` tag), compiled from source with a
-platform layer of the core's own (`waterbox/platform/`) in place of SDL: no window, no audio device (the core mixes
-the sound itself, in the machine), no network, no threads. The game's data - srb2.srb, zones.dta, player.dta,
-rings.dta, patch.dta, music.dta and legacy.pk3 - is firmware: the core carries none of it.
+> [!IMPORTANT]
+> chimera-core-srb2-legacy was primarily written using AI assistance from Anthropic's Claude LLMs. [libTAS](https://github.com/clementgallet/libTAS) is a viable alternative to this core.
 
-## Using it in Chimera
+## Usage
 
-Chimera ships no cores and downloads nothing. Download the core's package from this repository's
-[Releases](https://github.com/P-AS/chimera-core-srb2-legacy/releases) page (a rolling `dev` build, dated
-`nightly-YYYY-MM-DD` builds), or build it, and put it in the `cores` folder beside Chimera's program (or the folder
-chosen in Tools > Core Manager... > Change folder...).
+chimera-core-srb2-legacy supports Windows, macOS, and Linux, on both the x86_64 and aarch64 architectures. To use it, download the latest Chimera core package from the [Releases](https://github.com/P-AS/chimera-core-srb2-legacy/releases) page for your CPU's architecture. Place the file in Chimera's `Cores` directory. You can access this folder from Chimera by clicking Tools --> Core Manager... --> Open cores folder.
 
-Each release has two packages, one per CPU: `srb2legacy-<version>-x86_64.chimeraCore` and
-`srb2legacy-<version>-aarch64.chimeraCore`. **On Windows or Linux you most likely want the x86_64 one.** Take the
-aarch64 one only if you know you are using an ARM device; on a Mac, aarch64 for Apple silicon and x86_64 for an Intel
-Mac. Put only one of them in the `Cores` folder: two packages of one core list it twice.
-The same file works on Linux and on Windows. None of the game's data is in the package: a project brings SRB2
-Legacy 2.1.30's seven data files as firmware (as its `SRB2-Legacy-v2130-Full.zip` and
-[srb2-preservation's assets repository](https://codeberg.org/srb2-preservation/assets) have them; legacy.pk3
-included, which upstream calls optional).
+If you are running Windows or Linux, you most likely want to download the x86_64 Chimera core package, while on macOS you most likely want to download the aarch64 Chimera core package.
+
+A copy of SRB2 Legacy v2.1.30's srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta and legacy.pk3 asset files are required to be loaded as firmware for the core to function. They are in SRB2 Legacy's `SRB2-Legacy-v2130-Full.zip` and in [srb2-preservation's assets repository](https://codeberg.org/srb2-preservation/assets).
+
+The bundled TAS info overlay lua script can be loaded in Chimera from Tools --> Lua Console --> Script --> Open Script.
 
 ## Building
 
+This core is a fork of the SRB2 (2.2) core, [chimera-core-srb2](https://github.com/P-AS/chimera-core-srb2);
+`docs/PLAN.md` says what differs and why.
+
+Building is for Linux (CI uses Ubuntu). The core is built with miniBox, the sandbox Chimera runs cores in, from a
+Chimera checkout (`git clone --recursive https://github.com/ToolAssisted-run/chimera.git`). Build miniBox first,
+with its C++ guest toolchain (GME and libopenmpt are C++):
+
 ```
-git submodule update --init
+mb=<a Chimera checkout>/extern/chimera-common-minibox
+meson setup "$mb/build/meson-linux" "$mb" && meson compile -C "$mb/build/meson-linux"
+ninja -C "$mb/build/meson-linux" source/guest/emulibc.c.o
+meson setup "$mb/build/meson-cpp" "$mb" -Dguest_cpp=true && meson compile -C "$mb/build/meson-cpp"
+ninja -C "$mb/build/meson-cpp" libstdcxx-installed.stamp source/guest/emulibc.c.o source/guest/cxxglue.c.o
+```
+
+Then the core:
+
+```
+git submodule update --init --recursive
 export MINIBOX_DIR=<a Chimera checkout>/extern/chimera-common-minibox
-make -C waterbox -f native.mk -j$(nproc)    # the native reference and the harnesses: build/native/
+make -C waterbox -f native.mk -j$(nproc)    # the native test programs: build/native/
 make -C waterbox -f guest.mk -j$(nproc)     # the core: build/guest/core.wbx
 ```
 
-miniBox must be built first, with its C++ guest toolchain (GME is C++), in its checkout:
+The makefiles apply the patches in `patches/` to `extern/SRB2` and `extern/openmpt` on the first build. The whole
+build, as CI does it, and the test script are in [docs/BUILDING.md](docs/BUILDING.md).
+
+### Packaging
 
 ```
-meson setup build/meson-cpp -Dguest_cpp=true && ninja -C build/meson-cpp
-ninja -C build/meson-cpp libstdcxx-installed.stamp source/guest/emulibc.c.o source/guest/cxxglue.c.o
-``` 
-
-The patches go onto
-`extern/SRB2` and `extern/openmpt` on the first build (`waterbox/apply-patches.sh [openmpt]`, each series all or
-nothing). `extern/openmpt` is shallow: `git submodule update --init` fetches only its pinned commit.
-
-## Data for the gate
-
-`waterbox/fetch-data.sh [<folder>]` takes the seven data files from srb2-preservation's assets repository on
-Codeberg (git lfs, at a pinned commit), checked against the declared firmware (default `build/srb2-legacy-data`);
-`run-gate.sh -d <folder>` runs on them. CI (`.github/workflows/chimera.yml`) does this, then the gate, the package
-and Chimera's contract tests, on x86_64 and on aarch64, and publishes `dev` and nightly releases with both packages.
-
-## The package
-
-```
-waterbox/build-package.sh [-r <Chimera bundle or checkout>]   # build/package/srb2legacy.chimeraCore, or into its Cores
+waterbox/build-package.sh [-o <folder>]
 ```
 
-`-r <chimera>` writes the package into a Chimera source checkout's `build/Cores` (a bundle's `Cores`). The whole
-build, as CI does it, is in [docs/BUILDING.md](docs/BUILDING.md); [AGENTS.md](AGENTS.md) is the guide for an AI
-coding agent.
-
-## Running the native reference
-
-```
-mkdir -p build/work && ln -s /usr/share/games/srb2-legacy/* build/work/
-echo '{"warp": "1"}' > build/work/settings          # optional: start in Greenflower Zone Act 1
-build/native/run-native build/work -n 400 --ppm frame.ppm
-build/native/run-wbx build/guest/core.wbx build/work -n 400   # the same, in the sandbox
-```
-
-Both run `-n` steps (a step is a tic, on the machine's own clock), print the picture's hash, the tic and the
-clock every `-p` steps and a hash of the whole run at the end, and `--ppm` writes the last picture. Their
-lines diff directly.
-
-## The gate
-
-`./waterbox/run-gate.sh [-d <SRB2 Legacy data folder>] [-m <miniBox>]`: the legs, each saying what it compared, each
-with teeth. `equivalence`: native == sandbox, step for step, on the intro and Greenflower Zone Act 1. `steps`:
-a step is a tic, a wipe's frames are lag steps, play is a tic a step. `savestates`: a save and load before
-every step, and a new host mid-wipe, change nothing. `declaration`: the package's controller is the core's. `settings`: each setting reaches the engine.
-`opengl`: with no GPU bridge the OpenGL renderer warns in the log and the run is the software renderer's. `engine`
-(with `-c`) also runs `opengl-hw` through the GPU bridge where the machine has a context: the character select
-drawn as in software, and the picture right again after a rewind and a reopen (within a few seam pixels: SRB2
-Legacy's renderer draws coplanar polygons in an order set by the driver's texture names).
-`properties`: the Game State domain, read by its property table, holds what Greenflower's movie did, the timers
-`tests/timers.lua` sets, a spindash's charge (`tests/spindash.txt`), and a boss `tests/boss.lua` spawns and hits.
-`input`: movies through the menus and in Greenflower,
-the same every way. `files`: what the game writes is kept in the machine and exported identically. `time`: a
-host stall mid-run changes nothing. `audio`: the music and sounds are heard (a GME song, a tracker module, and
-the game's MIDI songs with Music Preference MIDI among them), and every leg's run line carries the sound's hash
-too.
-
-The harnesses' `--wav FILE` writes a run's sound.
+This builds the core if needed and writes the package, `srb2legacy.chimeraCore`, into `<folder>`, or into
+`build/package/` without `-o`. Put that file in Chimera's `Cores` folder to use it.
 
 ## Settings
 
-Declared in `waterbox/waterbox.config`, so Chimera shows them as the core's options; each is SRB2 Legacy's own option,
-given to the engine at start: Analog Control (Off: 2.1's useranalog), Camera Speed (1.0), Camera Distance (192, as in
-SRB2 2.2; Legacy's own is 160), Camera Height (40, as in 2.2; Legacy's own is 25), Field of View (90; 60 to 179, the picture's alone - leave it at 90 for normal levels, 120 is
-recommended for NiGHTS levels), Score/Time/Rings (Mania), Score Display (Modern: the score's number lined up with the time; Normal is 2.1's
-place and Legacy's default), Flip Camera with Gravity (Yes), Unlock Record Attack and
-NiGHTS Mode, Unlock All Maps in Record Attack and NiGHTS Mode, Unlock All Secrets (each Off), Music Preference
-(Digital: the recorded songs; MIDI: the game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips,
-MAME's - the sound's alone), Renderer (software; opengl-hw: SRB2's OpenGL renderer on this machine's GPU through
-Chimera's GPU bridge - fast, its picture the driver's; where there is no bridge it draws in software, which plays
-differently, and the log warns; the renderer is part of the game, so a movie is its renderer's), OpenGL Shaders (On;
-the picture's alone), Resolution (1280x800: SRB2's video modes, and 2560x1440 and 3840x2160, shown with square
-pixels; the game plays the same at every one), Start Map (empty: the intro and the title), Start Map Character (a
-skin name, e.g. knuckles; empty: Sonic).
+Chimera shows these as the core's options (they are declared in `waterbox/waterbox.config`). Each is one of SRB2
+Legacy's own options, given to the game when it starts.
 
-The SRB2 core's Play Style, Automatic Braking, Tutorial Prompt and Unlock All Characters are not here: 2.1 has no
-play styles but Analog Control, no automatic braking, no tutorial, and no locked characters; and SRB2 Legacy always
-offers Marathon Run.
+| Setting | Default | Choices and notes |
+|---|---|---|
+| Analog Control | Off | SRB2 2.1's analog control (its console variable useranalog) |
+| Camera Speed | 1.0 | |
+| Camera Distance | 192 | As in SRB2 2.2. SRB2 Legacy's own default is 160 |
+| Camera Height | 40 | As in SRB2 2.2. SRB2 Legacy's own default is 25 |
+| Field of View | 90 | 60 to 179. Changes only the picture. Leave it at 90 for normal levels; 120 is recommended for NiGHTS levels |
+| Score/Time/Rings | Mania | Normal, Centiseconds, Mania, Tics |
+| Score Display | Modern | Normal: where SRB2 2.1 puts the score, and SRB2 Legacy's default. Modern: the score's number lined up with the time |
+| Flip Camera with Gravity | Yes | |
+| Unlock Record Attack and NiGHTS Mode | Off | |
+| Unlock All Maps in Record Attack and NiGHTS Mode | Off | |
+| Unlock All Secrets | Off | |
+| Music Preference | Digital | Digital: the recorded songs. MIDI: the game's MIDI songs on six emulated Sega Genesis/Mega Drive YM2612 sound chips (MAME's). Changes only the sound |
+| Renderer | software | software, or opengl-hw: SRB2's OpenGL renderer on this computer's graphics card through Chimera's GPU bridge. opengl-hw is fast, but its picture depends on the graphics driver. Where Chimera has no GPU bridge it draws in software, which plays differently, and the log warns. The renderer is part of the game, so a movie must be played back with the renderer it was made with |
+| OpenGL Shaders | On | Changes only the picture |
+| Resolution | 1280x800 | SRB2's video modes, plus 2560x1440 and 3840x2160, shown with square pixels. The game plays the same at every one |
+| Start Map | (empty) | A map number to start in. Empty: the intro and the title screen |
+| Start Map Character | (empty) | A character's skin name, for example knuckles. Empty: Sonic |
 
-## The controller
+The SRB2 core's Play Style, Automatic Braking, Tutorial Prompt and Unlock All Characters are not here: SRB2 2.1 has
+no play styles but Analog Control, no automatic braking, no tutorial and no locked characters, and SRB2 Legacy
+always offers Marathon Run.
 
-SRB2 Legacy's keyboard as buttons (Forward, Jump, Spin - 2.1's "use" - ... the menus' Enter and Escape, which answer
-a prompt too), pressed as keys, so menus and play work as on a keyboard (the ring-slinger controls too - Fire, Fire
-Normal, Toss Flag, Weapon Next/Prev - but not the number row's weapon slots); plus axes for exact values: Forward
-Move, Side Move, Turn, Aim. The harnesses take a movie as text, `--input FILE` with `FROM-TO: Button; Axis=value`
-lines (`waterbox/tests/`).
+## Inputs
 
-## Game State and the TAS info script
+The buttons are SRB2 Legacy's keyboard keys, pressed as keys, so the menus and play work as on a keyboard. Spin is
+SRB2 2.1's "use" control. Enter and Escape are the menus' keys, and also answer a prompt's yes and no. The
+ring-slinger controls are included, but not the number row's weapon slots: Weapon Next and Weapon Prev reach every
+weapon.
 
-The core exposes one memory domain, `Game State`, and a property table naming its fields, so RAM Watch (Watches >
-Add Game Properties), RAM Search and Lua's `game.get` see them by name. The core copies them from the game after
-every step; they are read-only. `Game.Tic`, `Game.Level Time`, `Game.State`, `Game.Map`; `Player.In Level`,
-`Player.X`/`Y`/`Z`, `Player.Floor Z`/`Ceiling Z` (`mo->floorz`/`ceilingz`: the floor and ceiling the player is between), `Player.Momentum X`/`Y`/`Z`, `Player.Conveyor Momentum X`/`Y` (`player->cmomx`/`cmomy`: what a
-conveyor or a moving platform adds), `Player.Platform Momentum Z` (`mo->pmomz`: the moving floor's) and
-`Player.Speed` (16.16 fixed point: 65536 is one unit; speed is the game's own `player->speed`), `Player.Dash Speed`,
-`Player.Min Dash`, `Player.Max Dash` (the spindash's charge and its bounds, 16.16), `Player.Flags` (`pflags`) and
-`Player.Charging Spindash` (its `PF_STARTDASH` bit), `Player.Normal Speed` (the player's top running speed);
-`Boss.Active`, `Boss.Health`, `Boss.Max Health`, `Boss.Flashing` (the first
-`MF_BOSS` object, as the SRB2 TAS build finds the boss: its health, its type's starting health, and `MF2_FRET`); `Player.Angle` (2^32 a turn); `Timers.Speed Shoes`, `Timers.Invincibility`,
-`Timers.Space`, `Timers.Air` (tics left). Out of a level the player's fields are 0.
+### Digital
 
-`lua/tasinfo-srb2-legacy.lua` (also an asset of every `dev` and nightly release, beside the package) draws them in the bottom right corner of the game, clear of Chimera's own HUD: open it in Tools > Lua Console with an SRB2 Legacy project loaded. It shows
-speed, the angle in hex and in degrees (each to 4 decimal places, on lines of their own), the position and the
-momentum, the conveyor and platform momentum, the spindash's revs, the four timers in tics and seconds, and while a boss is in the level its health (left /
-at the start) and whether it is flashing. SRB2
-has no discrete revs: a spindash charges 1.0 of speed a tic while Spin is held, from Min Dash to Max Dash, so the
-script counts a rev a tic, as revs so far / revs to full charge. The conveyor and platform momentum, the revs and the
-timers are shown only while they are not 0.
+| Input | TAStudio header |
+|---|---|
+| Forward | `^` |
+| Backward | `v` |
+| Strafe Left | `<` |
+| Strafe Right | `>` |
+| Turn Left | `{` |
+| Turn Right | `}` |
+| Look Up | `U` |
+| Look Down | `D` |
+| Jump | `J` |
+| Spin | `S` |
+| Fire | `F` |
+| Fire Normal | `N` |
+| Toss Flag | `G` |
+| Center View | `C` |
+| Reset Camera | `R` |
+| Camera Toggle | `T` |
+| Weapon Next | `+` |
+| Weapon Prev | `-` |
+| Custom 1 | `1` |
+| Custom 2 | `2` |
+| Custom 3 | `3` |
+| Pause | `P` |
+| Enter | `E` |
+| Escape | `e` |
 
-The harnesses' `--game-state FILE` writes every step's block, and the table beside it in `FILE.json`.
+### Analog
+
+The axes set exact values. Forward Move and Side Move (-50 to 50) count only while their buttons are not held. Turn
+and Aim range from -32768 to 32767; Aim at 0 leaves the game's own look.
+
+| Input | TAStudio header |
+|---|---|
+| Forward Move | Fwd |
+| Side Move | Side |
+| Turn | Turn |
+| Aim | Aim |
+
+## Game State and the TAS info overlay
+
+### Game State
+
+The core has one memory area, `Game State`, with a table naming its fields, so RAM Watch (Watches > Add Game
+Properties), RAM Search and Lua's `game.get` see them by name. The core copies them from the game after every step,
+and they are read-only. Positions, floor and ceiling heights, momentum, speed and the spindash values are 16.16 fixed point: 65536 is one unit.
+
+| Property | What it is |
+|---|---|
+| `Game.Tic` | The game's tic counter (a tic is a 35th of a second) |
+| `Game.Level Time` | Tics since the level started |
+| `Game.State` | SRB2's game state (level, intermission, title screen and so on) |
+| `Game.Map` | The current map number |
+| `Player.In Level` | Whether the player is in a level. Out of a level the player's fields are 0 |
+| `Player.X / Y / Z` | Position |
+| `Player.Floor Z / Ceiling Z` | The height of the floor below the player and the ceiling above them (SRB2's `floorz`/`ceilingz`) |
+| `Player.Momentum X / Y / Z` | Momentum |
+| `Player.Conveyor Momentum X / Y` | What a conveyor or a moving platform adds to the momentum (SRB2's `cmomx`/`cmomy`) |
+| `Player.Platform Momentum Z` | The moving floor's vertical momentum (SRB2's `pmomz`) |
+| `Player.Speed` | Speed, the game's own `player->speed` |
+| `Player.Angle` | The direction the player faces: 2^32 is one full turn |
+| `Player.Dash Speed` | The spindash's charge |
+| `Player.Min Dash / Max Dash` | The spindash's lowest and highest charge |
+| `Player.Flags` | The player's flags (SRB2's `pflags`) |
+| `Player.Charging Spindash` | Whether a spindash is charging (the `PF_STARTDASH` flag) |
+| `Player.Normal Speed` | The player's top running speed |
+| `Boss.Active` | Whether there is a boss: the first object with `MF_BOSS` |
+| `Boss.Health` | The boss's health |
+| `Boss.Max Health` | Its type's starting health |
+| `Boss.Flashing` | Whether it is flashing after a hit (`MF2_FRET`) |
+| `Timers.Speed Shoes` | Tics left of speed shoes |
+| `Timers.Invincibility` | Tics left of invincibility |
+| `Timers.Space` | Tics left before drowning in space |
+| `Timers.Air` | Tics left before drowning underwater |
+
+### TAS info overlay
+
+`lua/tasinfo-srb2-legacy.lua` (also attached to every `dev` and nightly release, beside the package) draws these
+values in the bottom right corner of the game, clear of Chimera's own display. Open it in Tools > Lua Console with an
+SRB2 Legacy project loaded.
+
+| Shows | Notes |
+|---|---|
+| Speed |  |
+| Angle | In hex and in degrees (to 4 decimal places), each on its own line |
+| Position and momentum | Position includes the floor and ceiling heights, under Z |
+| Conveyor and platform momentum | Only while not 0 |
+| Spindash revs | Only while charging. SRB2 has no separate revs: a spindash charges 1.0 of speed a tic while Spin is held, from Min Dash to Max Dash, so the overlay counts a rev a tic, as revs so far / revs to full charge |
+| The four timers | In tics and seconds, only while not 0 |
+| Boss health and flashing | While a boss is in the level: health left / health at the start |
 
 ## Licence
 
