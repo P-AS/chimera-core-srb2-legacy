@@ -112,7 +112,8 @@ or without them, so a movie made with ghosts shown plays back the same without t
   level being played as far as it went (a movie that ends at the goal does not need to play on into the score
   tally). Unzip the export and put a ghost file into another project's Ghosts to race against it.
 - **Precision.** SRB2 2.1's ghost files keep a ghost's movement to 1/256 of a map unit, so a ghost is always
-  within that distance of where the player was. SRB2 2.2 keeps it exactly.
+  within that distance of where the player was. SRB2 2.2 keeps it exactly, and so will SRB2 Legacy 2.1.31,
+  which this core will move to when it is released.
 
 ## Inputs
 

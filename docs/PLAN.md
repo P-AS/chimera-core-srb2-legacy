@@ -142,6 +142,7 @@ What follows is the SRB2 core's record, corrected where the fork changed it.
   - the patches are hooks, small and few. To bump: move the submodule, `waterbox/apply-patches.sh` (it says
     which patch no longer applies), rebuild, and update the firmware hashes when the data changes
     (`ASSET_HASH_*` in upstream's `src/config.h.in`, which the engine checks itself at start).
+- **When moving to 2.1.31**: ghosts become exact (see "Ghosts"), so the ghosts test goes back to exact positions.
 - **The data is firmware, never carried**: srb2.srb, zones.dta, player.dta, rings.dta, patch.dta, music.dta and
   legacy.pk3 (`/usr/share/games/srb2-legacy` locally). The engine refuses all but music.dta whose MD5 is not
   theirs (`W_VerifyFileMD5`; `DEVELOP` is not defined), and a music.dta with anything but music and sounds.
@@ -273,6 +274,12 @@ as Record Attack names its replays found in `replay/<timeattackfolder>/` whateve
   Legacy's latest release (2.1.30) and does not backport that (decided 2026-11-15): it would be
   a demo format no other 2.1 build plays. The test script checks the ghost against the player to within that
   step on each axis.
+- **SRB2 Legacy 2.1.31 fixes it**: its demo version 0x000C stores a ghost's movement (and Metal Sonic's) as full
+  fixed point, as 2.2 does, and reads 0x0008 to 0x000B as before. It also reads a ghost's colour change in two
+  bytes, as 0x000B and later write it (2.1.30 reads one, so such a ghost falls out of step). When the core moves
+  to 2.1.31 (see "Upstream"): the ghosts test (`run-gate.sh`) checks the ghost's position exactly again, as the
+  SRB2 core's does; `srb2-ghosts.c` needs no change (0x000C keeps the two-byte map number), only its comment
+  naming the versions; and README.md's "Precision" point goes.
 
 ## OpenGL (milestone 8, 2026-10-05)
 
