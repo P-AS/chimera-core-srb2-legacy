@@ -348,8 +348,9 @@ them with their SHA-1s:
   optional firmware and the engine loads it whenever it is there.
 - A project's own files (`waterbox/file_slots.json`) are optional: Add-ons
   (`.pk3`, `.wad`, `.soc`, `.lua`, in load order, as SRB2's `-file` loads
-  them) and Save data (`gamedata.dat` and `srb2sav*.ssg`, as Export Save Data
-  writes them).
+  them), Save data (`gamedata.dat` and `srb2sav*.ssg`, as Export Save Data
+  writes them) and Ghosts (`.lmp` replay files, shown as ghosts on the map each
+  was recorded on; README.md's "Ghosts").
 - No BIOS and no other firmware is needed.
 
 ## Troubleshooting

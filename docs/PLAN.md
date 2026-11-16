@@ -158,6 +158,12 @@ What follows is the SRB2 core's record, corrected where the fork changed it.
 - `0005-gl-no-logfile.patch`: `GL_NO_LOGFILE`, for a platform layer with a console and no place for
   `ogllog.txt`: the OpenGL renderer's messages go to the console, and no log file is written into the machine's
   files.
+- `0007-ghosts.patch`: ghosts outside Record Attack, as hooks the platform gives (`I_LevelUnloading`,
+  `I_GhostsInNormalPlay`, `I_LoadGhosts`, `I_GhostTicker`, `I_LevelLoaded`, declared in `g_game.h`), and
+  `demoghostrecording`: the ghost data written as `demorecording` writes it, without what `demorecording` also
+  does (it stops the game saving, `P_CanSave`). Accessors (`G_HaveGhosts`, `G_DemoRecorded`,
+  `G_GhostPositions`) read what `g_game.c` keeps static, and `G_FreeGhosts` (2.2's name) is the loop
+  `G_CheckDemoStatus` had inline. See "Ghosts".
 - `0006-gl-context-lost.patch`: `ContextLost`/`ContextRestored` in the GL driver and `HWR_ContextLost`/
   `HWR_ContextRestored` in the hardware renderer: a platform layer whose context can be replaced under the
   renderer (the GPU bridge's) has it forget every GL name without deleting any, then make its objects again.
@@ -229,6 +235,10 @@ which differ from SRB2's own:
 | OpenGL Shaders | `gr_shaders`; the picture's alone | **On** (On) |
 | Resolution | the engine's one video mode (see "Resolution") | **1280x800** (1280x800) |
 | Start Map | `-warp` (empty: the intro and the title) | empty |
+| Ghosts: Best Time, Best Score, Best Rings, Last | `ghost_besttime`, `ghost_bestscore`, `ghost_bestrings`, `ghost_last`: Hide, **Show**, Show All | **Show** (Show) |
+| Ghosts: Guest | `ghost_guest`: Hide, **Show** | **Show** (Show) |
+| Ghosts outside Record Attack | the core's (`srb2-ghosts.c`, patch 0007); see "Ghosts" | **Off** (no such option) |
+| Record Ghosts | the core's (`srb2-ghosts.c`, patch 0007); see "Ghosts" | **Off** (no such option) |
 
 **The unlocks** (user-decided, 2026-10-04: so a verification movie need not be made for each run) are set in
 the game data the engine has loaded (2.1's `unlockables[].unlocked`, `srb2-driver.c`), at the start and before every
@@ -242,6 +252,27 @@ game in Greenflower Zone.
 Analog Control off is 2.1's standard control: the player faces where the camera looks, the turn keys turn both,
 and the strafe keys strafe. The gate's `settings` leg reads the engine's options back (`run-native --print-cvar`):
 the defaults absent and given, and every other value of every setting.
+
+## Ghosts (2026-11-15)
+
+Ported from the SRB2 (2.2) core's ghosts (its PLAN.md, "Ghosts", has the reasons in full): a project's ghost
+files (a `ghosts` slot), each shown on the map its header names when the map's checksum matches; a file named
+as Record Attack names its replays found in `replay/<timeattackfolder>/` whatever the folder
+(`platform/files.c`); ghosts in normal play (a setting); and every level outside Record Attack recorded as
+`ghosts/<n>-<map>-<skin>.lmp`, the level being played exported too. What differs in SRB2 Legacy:
+
+- The demo code is all in `g_game.c` (2.2 moved it to `g_demo.c`), and there was no `G_FreeGhosts`: patch 0007
+  adds it, from the loop `G_CheckDemoStatus` had. Ghosts are loaded in `P_SetupLevel` itself.
+- `G_BeginRecording` leaves the player's flags alone here (2.2's sets them from the controls' options), so the
+  core puts nothing back. The test script shows recording changes nothing all the same.
+- Legacy plays demo versions 0x0008 to 0x000B; 0x0008 keeps the map number in one byte, the others in two
+  (`srb2-ghosts.c` reads both).
+- **A ghost is where the player was to 1/256 of a map unit**, not exactly: 2.1's ghost data stores a tic's
+  movement in steps of 256 (`G_WriteGhostTic`) and carries the rounding on, so the error never grows past one
+  step. SRB2 2.2 stores it exactly since STJr's 1447aba96 (demo version 0x000e, 2.2.9). The core stays on SRB2
+  Legacy's latest release (2.1.30) and does not backport that (decided 2026-11-15): it would be
+  a demo format no other 2.1 build plays. The test script checks the ghost against the player to within that
+  step on each axis.
 
 ## OpenGL (milestone 8, 2026-10-05)
 
