@@ -1,5 +1,8 @@
 -- tasinfo-srb2-legacy.lua - SRB2 Legacy TAS info for Chimera: the player's speed, angle,
--- position, the floor and ceiling heights above and below it, momentum, the momentum a conveyor or moving platform adds, the
+-- position, the floor and ceiling heights above and below it, momentum, the
+-- thrust the controls added to the momentum this tic and its length, the
+-- momentum a conveyor
+-- or moving platform adds, the
 -- spindash's revs, the power timers and the boss's health and flashing, drawn
 -- over the game every frame.
 --
@@ -87,6 +90,14 @@ local function draw()
 		add("Mom X: " .. fixed("Player.Momentum X"))
 		add("Mom Y: " .. fixed("Player.Momentum Y"))
 		add("Mom Z: " .. fixed("Player.Momentum Z"))
+		-- the push the controls gave the momentum this tic, before the top speed
+		-- limit and friction (0 with nothing held)
+		if has("Player.Thrust X", "Player.Thrust Y") then
+			add("Thrust X: " .. fixed("Player.Thrust X"))
+			add("Thrust Y: " .. fixed("Player.Thrust Y"))
+		end
+		-- the two together, in any direction
+		if has("Player.Thrust") then add("Thrust: " .. fixed("Player.Thrust")) end
 		-- the rest only while not 0, and only what the core has
 		local function nonzero(label, name, show)
 			if has(name) and game.get(name) ~= 0 then add(label .. show(name)) end
@@ -119,7 +130,7 @@ if not has(table.unpack(BASE)) then
 	console.log("tasinfo-srb2-legacy.lua: no SRB2 Legacy Game State here - load an SRB2 Legacy project first")
 	return
 end
-local OPTIONAL = { "Player.Floor Z", "Player.Ceiling Z", "Player.Conveyor Momentum X", "Player.Conveyor Momentum Y", "Player.Platform Momentum Z",
+local OPTIONAL = { "Player.Thrust", "Player.Thrust X", "Player.Thrust Y", "Player.Floor Z", "Player.Ceiling Z", "Player.Conveyor Momentum X", "Player.Conveyor Momentum Y", "Player.Platform Momentum Z",
 	"Player.Dash Speed", "Player.Min Dash", "Player.Max Dash", "Player.Charging Spindash",
 	"Timers.Speed Shoes", "Timers.Invincibility", "Timers.Space", "Timers.Air",
 	"Boss.Active", "Boss.Health", "Boss.Max Health", "Boss.Flashing" }

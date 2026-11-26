@@ -159,6 +159,10 @@ What follows is the SRB2 core's record, corrected where the fork changed it.
 - `0005-gl-no-logfile.patch`: `GL_NO_LOGFILE`, for a platform layer with a console and no place for
   `ogllog.txt`: the OpenGL renderer's messages go to the console, and no log file is written into the machine's
   files.
+- `0008-tas-thrust.patch`: `chimera_thrustx`/`chimera_thrusty`, a value per player: the thrust `P_3dMovement`
+  added to the momentum this tic (`totalthrust`, before the top speed cap and friction), cleared at the start of
+  `P_PlayerThink`. The game never reads them; the core copies the console player's into the Game State
+  (`Player.Thrust X`/`Y`, and `Player.Thrust`, their length by `R_PointToDist2`) for the TAS info script.
 - `0007-ghosts.patch`: ghosts outside Record Attack, as hooks the platform gives (`I_LevelUnloading`,
   `I_GhostsInNormalPlay`, `I_LoadGhosts`, `I_GhostTicker`, `I_LevelLoaded`, declared in `g_game.h`), and
   `demoghostrecording`: the ghost data written as `demorecording` writes it, without what `demorecording` also
